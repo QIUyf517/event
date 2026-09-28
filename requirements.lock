@@ -1,0 +1,9 @@
+numpy==1.26.4
+pandas==2.2.3
+pydantic==2.12.5
+streamlit==1.64.0
+requests==2.32.5
+beautifulsoup4==4.14.3
+pypdf==6.19.0
+akshare==1.18.97
+pytest==8.4.2

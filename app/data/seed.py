@@ -11,3 +11,6 @@ def seed_demo(repo: SQLiteRepository, as_of: date | None = None):
     for doc in demo_documents():
         repo.upsert_document(doc, chunk_document(doc))
 
+def seed_profile(repo: SQLiteRepository):
+    repo.upsert_profile(demo_profile())
+

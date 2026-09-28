@@ -1,27 +1,34 @@
 from datetime import date
-from app.data.fetchers import FetchError, demo_market, demo_shares, fetch_akshare
+from uuid import uuid4
+from app.config import MAX_SHARE_DATES
+from app.data.fetchers import FetchError, fetch_akshare, fetch_sse_shares
 from app.data.repositories.sqlite import SQLiteRepository
+from app.models.research import SyncResult
 
-def sync_market_data(repo: SQLiteRepository, etf_code: str, start_date: date, end_date: date) -> dict:
-    """优先使用AKShare；网络、依赖或字段变化时保留可审计的演示降级状态。"""
+def sync_market_data(repo: SQLiteRepository, etf_code: str, start_date: date, end_date: date) -> SyncResult:
+    """真实模式同步；失败时不写入任何演示数据。"""
+    warnings = []
+    market_rows, share_rows = 0, 0
     try:
         bars = fetch_akshare(etf_code, start_date, end_date)
         repo.upsert_market(bars)
-        source, status = "akshare", "success"
+        market_rows, market_status = len(bars), "success"
     except FetchError as exc:
-        bars = demo_market(end_date)
-        repo.upsert_market(bars)
-        source, status = "demo_synthetic", "fallback"
-        warning = str(exc)
-    try:
-        shares = demo_shares(end_date)
-        repo.upsert_shares(shares)
-        shares_status = "demo_synthetic"
-    except Exception as exc:
+        bars, market_status = [], "failed"
+        warnings.append(str(exc))
+    if bars:
+        share_dates = [bar.trade_date for bar in bars[-MAX_SHARE_DATES:]]
+        shares, share_warnings = fetch_sse_shares(etf_code, share_dates)
+        warnings.extend(share_warnings)
+        if shares:
+            repo.upsert_shares(shares)
+            share_rows = len(shares)
+            shares_status = "success" if len(shares) == len(share_dates) else "partial"
+        else:
+            shares_status = "unavailable"
+    else:
         shares_status = "failed"
-        warning = str(exc)
-    result = {"market_source": source, "market_status": status, "shares_source": shares_status, "as_of_date": end_date.isoformat()}
-    if "warning" in locals():
-        result["warning"] = warning
+    result = SyncResult(sync_id=str(uuid4()), etf_code=etf_code, start_date=start_date, end_date=end_date, market_status=market_status, share_status=shares_status, market_rows=market_rows, share_rows=share_rows, warnings=warnings)
+    repo.save_sync_result(result)
     return result
 

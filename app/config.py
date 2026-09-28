@@ -22,6 +22,24 @@ DATABASE_PATH = Path(os.getenv("ETF_DATABASE_PATH", PROJECT_ROOT / "data" / "etf
 if not DATABASE_PATH.is_absolute():
     DATABASE_PATH = PROJECT_ROOT / DATABASE_PATH
 DATA_MODE = os.getenv("ETF_DATA_MODE", "demo").lower()
+if DATA_MODE not in {"demo", "live"}:
+    raise ValueError("ETF_DATA_MODE 只能是 demo 或 live")
+REQUEST_TIMEOUT = int(os.getenv("ETF_REQUEST_TIMEOUT", "20"))
+MAX_SHARE_DATES = int(os.getenv("ETF_MAX_SHARE_DATES", "30"))
+LLM_API_KEY = os.getenv("LLM_API_KEY", "")
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "").rstrip("/")
+LLM_MODEL_ID = os.getenv("LLM_MODEL_ID", "")
+LLM_ENABLED = os.getenv("LLM_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
 ALLOWED_ETFS = {"510300": "沪深300ETF"}
 ALGORITHM_VERSION = "v0.1"
+
+def database_path_for_mode(mode: str | None = None) -> Path:
+    selected = (mode or DATA_MODE).lower()
+    if selected not in {"demo", "live"}:
+        raise ValueError("数据模式只能是 demo 或 live")
+    suffix = DATABASE_PATH.suffix or ".sqlite3"
+    stem = DATABASE_PATH.stem
+    if stem.endswith(".demo") or stem.endswith(".live"):
+        stem = stem.rsplit(".", 1)[0]
+    return DATABASE_PATH.with_name(f"{stem}.{selected}{suffix}")
 

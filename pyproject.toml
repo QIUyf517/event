@@ -7,14 +7,23 @@ name = "a-share-etf-research-agent"
 version = "0.1.0"
 description = "A股ETF公开资料与资金信号研究助手"
 requires-python = ">=3.10"
-dependencies = ["pydantic>=2.0", "streamlit>=1.32"]
+dependencies = [
+  "numpy==1.26.4",
+  "pandas==2.2.3",
+  "pydantic==2.12.5",
+  "streamlit==1.64.0",
+  "requests==2.32.5",
+  "beautifulsoup4==4.14.3",
+  "pypdf==6.19.0",
+]
 
 [project.optional-dependencies]
-market = ["akshare>=1.12", "numpy<2"]
-dev = ["pytest>=8.0"]
+market = ["akshare==1.18.97"]
+dev = ["pytest==8.4.2"]
 
 [project.scripts]
 etf-research = "app.cli:main"
+etf-doctor = "app.doctor:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

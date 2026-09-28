@@ -44,6 +44,7 @@ class DocumentChunk(BaseModel):
     source_url: str
     published_at: date
     page: int | None = None
+    location: str | None = None
 
 class SignalResult(BaseModel):
     etf_code: str
@@ -54,6 +55,8 @@ class SignalResult(BaseModel):
     missing_fields: list[str] = Field(default_factory=list)
     source_dates: dict[str, date] = Field(default_factory=dict)
     algorithm_version: str
+    data_mode: Literal["demo", "live"]
+    source_records: dict[str, int] = Field(default_factory=dict)
 
 class Evidence(BaseModel):
     evidence_id: str
@@ -63,6 +66,7 @@ class Evidence(BaseModel):
     source_url: str | None = None
     source_date: date | None = None
     details: dict[str, Any] = Field(default_factory=dict)
+    classification: Literal["verified_fact", "calculation", "inference", "unverified"] = "verified_fact"
 
 class ResearchState(BaseModel):
     task_id: str
@@ -75,4 +79,31 @@ class ResearchState(BaseModel):
     evidence: list[Evidence] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     final_report: dict[str, Any] | None = None
+    data_mode: Literal["demo", "live"] = "demo"
+
+class SyncResult(BaseModel):
+    sync_id: str
+    etf_code: str
+    data_mode: Literal["live"] = "live"
+    start_date: date
+    end_date: date
+    market_status: Literal["success", "failed"]
+    share_status: Literal["success", "partial", "failed", "unavailable"]
+    market_rows: int = 0
+    share_rows: int = 0
+    warnings: list[str] = Field(default_factory=list)
+
+class ResearchReport(BaseModel):
+    title: str = "ETF研究报告"
+    data_mode: Literal["demo", "live"]
+    etf: dict[str, Any] | None
+    as_of_date: date
+    data_cutoff_date: date | None = None
+    verified_facts: list[dict[str, Any]] = Field(default_factory=list)
+    calculated_results: dict[str, Any]
+    reasonable_inferences: list[str] = Field(default_factory=list)
+    unverified_information: list[str] = Field(default_factory=list)
+    evidence: list[dict[str, Any]] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    disclaimer: str
 
