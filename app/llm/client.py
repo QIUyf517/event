@@ -16,9 +16,9 @@ class OpenAICompatibleClient:
         if not self.configured:
             return []
         prompt = (
-            "你是谨慎的ETF研究助手。只根据给定证据生成合理推测，不得新增数字、事件或主体。"
-            "每条推测必须以已有文档证据编号引用结尾，例如[D1]。"
-            "只返回JSON对象：{\"reasonable_inferences\":[\"... [D1]\"]}。\n"
+            "你是谨慎的ETF资料摘录助手。只能复制给定文档中的连续原文片段，不得改写、推测因果或新增数字。"
+            "每条摘录必须以其文档证据编号结尾，例如[D1]。"
+            "只返回JSON对象：{\"source_quotes\":[\"原文片段 [D1]\"]}。\n"
             f"问题：{question}\n证据：{json.dumps(evidence_payload, ensure_ascii=False, default=str)}"
         )
         response = requests.post(
@@ -30,7 +30,7 @@ class OpenAICompatibleClient:
         response.raise_for_status()
         content = response.json()["choices"][0]["message"]["content"]
         data = json.loads(content)
-        values = data.get("reasonable_inferences", [])
+        values = data.get("source_quotes", [])
         if not isinstance(values, list) or not all(isinstance(x, str) for x in values):
             raise ValueError("LLM返回结构无效")
         return values

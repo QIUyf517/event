@@ -3,38 +3,57 @@ import math
 import random
 import time
 import requests
-from app.config import REQUEST_TIMEOUT
+from app.config import ETF_CATALOG, REQUEST_TIMEOUT
 from app.models.research import Document, ETFProfile, MarketBar, ShareRecord
 
 class FetchError(RuntimeError):
     pass
 
-def demo_profile() -> ETFProfile:
-    return ETFProfile(etf_code="510300", name="沪深300ETF", fund_company="华泰柏瑞基金管理有限公司", index_name="沪深300指数", source="manual_verified")
 
-def demo_market(end_date: date, days: int = 90) -> list[MarketBar]:
-    random.seed(300)
-    rows, price = [], 3.85
+# 演示数据只模拟交易日。2026年日期依据上交所公布的年度休市安排；
+# 其他年份仍仅排除周末，不能把合成日历用于真实模式。
+SSE_2026_CLOSED = (
+    (date(2026, 1, 1), date(2026, 1, 3)),
+    (date(2026, 2, 15), date(2026, 2, 23)),
+    (date(2026, 4, 4), date(2026, 4, 6)),
+    (date(2026, 5, 1), date(2026, 5, 5)),
+    (date(2026, 6, 19), date(2026, 6, 21)),
+    (date(2026, 9, 25), date(2026, 9, 27)),
+    (date(2026, 10, 1), date(2026, 10, 7)),
+)
+
+
+def demo_trading_day(day: date) -> bool:
+    return day.weekday() < 5 and not (day.year == 2026 and any(start <= day <= end for start, end in SSE_2026_CLOSED))
+
+def catalog_profile(etf_code: str) -> ETFProfile:
+    return ETFProfile(etf_code=etf_code, **ETF_CATALOG[etf_code], source="sse_fund_list")
+
+def demo_market(end_date: date, days: int = 90, etf_code: str = "510300") -> list[MarketBar]:
+    rng = random.Random(int(etf_code))
+    rows, price = [], {"510300": 3.85, "510050": 2.75, "510500": 5.8}[etf_code]
     for i in range(days):
         d = end_date - timedelta(days=days - i - 1)
-        if d.weekday() >= 5:
+        if not demo_trading_day(d):
             continue
-        price *= 1 + 0.0015 * math.sin(i / 4) + random.uniform(-0.012, 0.012)
-        turnover = 1.2e9 * (1 + 0.25 * math.sin(i / 7) + random.uniform(-0.1, 0.1))
-        rows.append(MarketBar(etf_code="510300", trade_date=d, close=round(price, 4), volume=turnover / price, turnover=round(turnover, 2), source="demo_synthetic", fetched_at=datetime.utcnow()))
+        price *= 1 + 0.0015 * math.sin(i / 4) + rng.uniform(-0.012, 0.012)
+        turnover = 1.2e9 * (1 + 0.25 * math.sin(i / 7) + rng.uniform(-0.1, 0.1))
+        rows.append(MarketBar(etf_code=etf_code, trade_date=d, close=round(price, 4), volume=turnover / price, turnover=round(turnover, 2), source="demo_synthetic", fetched_at=datetime.utcnow()))
     return rows
 
-def demo_shares(end_date: date, days: int = 90) -> list[ShareRecord]:
+def demo_shares(end_date: date, days: int = 90, etf_code: str = "510300") -> list[ShareRecord]:
     rows = []
     for i in range(days):
         d = end_date - timedelta(days=days - i - 1)
-        if d.weekday() >= 5:
+        if not demo_trading_day(d):
             continue
-        rows.append(ShareRecord(etf_code="510300", trade_date=d, shares=1.05e11 + i * 1.8e8, source="demo_synthetic", fetched_at=datetime.utcnow()))
+        rows.append(ShareRecord(etf_code=etf_code, trade_date=d, shares=(0.85e11 + int(etf_code[-3:]) * 1e8) + i * 1.8e8, source="demo_synthetic", fetched_at=datetime.utcnow()))
     return rows
 
-def demo_documents() -> list[Document]:
-    return [Document(document_id="demo-510300-report", title="沪深300ETF定期报告（演示资料）", content="本文件为演示资料。基金报告披露基金规模、份额和跟踪指数情况。投资者应关注数据日期与披露口径。", source_url="https://example.com/demo/510300-report", publisher="演示资料库", published_at=date.today(), fetched_at=datetime.utcnow(), document_type="fund_report", etf_codes=["510300"])]
+def demo_documents(as_of: date, etf_code: str = "510300") -> list[Document]:
+    published_at = as_of - timedelta(days=30)
+    name = ETF_CATALOG[etf_code]["name"]
+    return [Document(document_id=f"demo-{etf_code}-report-{published_at}", title=f"{name}定期报告（演示资料）", content=f"本文件为合成演示资料，不代表真实公告。{etf_code}{name}的示例报告提及基金规模、份额和跟踪指数。投资者应关注数据日期与披露口径。", source_url=f"https://example.com/demo/{etf_code}-report", publisher="演示资料库", published_at=published_at, fetched_at=datetime.utcnow(), document_type="fund_report", etf_codes=[etf_code])]
 
 def fetch_akshare(etf_code: str, start_date: date, end_date: date):
     """读取ETF日线；东方财富失败时降级到新浪，二者都是真实公开数据。"""
@@ -54,10 +73,11 @@ def fetch_akshare(etf_code: str, start_date: date, end_date: date):
         rows = []
         fetched_at = datetime.utcnow()
         if data is not None and not data.empty:
-            required = {"日期", "收盘", "成交量", "成交额"}
-            missing = required.difference(data.columns)
+            missing = {"日期", "收盘", "成交量", "成交额"}.difference(data.columns)
             if missing:
-                raise FetchError(f"东方财富字段变化，缺少: {sorted(missing)}")
+                errors.append(f"eastmoney:字段变化，缺少 {sorted(missing)}")
+                data = None
+        if data is not None and not data.empty:
             source = "akshare:eastmoney"
             iterator = ((r["日期"], r["收盘"], float(r["成交量"]) * 100, r["成交额"]) for _, r in data.iterrows())
         else:
@@ -73,7 +93,7 @@ def fetch_akshare(etf_code: str, start_date: date, end_date: date):
             if trade_date < start_date or trade_date > end_date:
                 continue
             close, volume, turnover = float(raw_close), float(raw_volume), float(raw_turnover)
-            if close <= 0 or volume < 0 or turnover < 0:
+            if not all(math.isfinite(value) for value in (close, volume, turnover)) or close <= 0 or volume < 0 or turnover < 0:
                 raise FetchError(f"行情数值异常: {trade_date}")
             rows.append(MarketBar(etf_code=etf_code, trade_date=trade_date, close=close, volume=volume, turnover=turnover, source=source, fetched_at=fetched_at))
         if not rows:
@@ -108,10 +128,14 @@ def fetch_sse_shares(etf_code: str, trade_dates: list[date], pause_seconds: floa
                 continue
             if not {"SEC_CODE", "STAT_DATE", "TOT_VOL"}.issubset(match):
                 raise ValueError("上交所份额字段发生变化")
+            returned_date = date.fromisoformat(match["STAT_DATE"])
+            if returned_date != trade_date:
+                warnings.append(f"{trade_date}: 上交所返回了其他日期的份额 {returned_date}，已忽略")
+                continue
             shares = float(match["TOT_VOL"]) * 10000
             if shares <= 0:
                 raise ValueError("份额不是正数")
-            rows.append(ShareRecord(etf_code=etf_code, trade_date=date.fromisoformat(match["STAT_DATE"]), shares=shares, source="sse:COMMON_SSE_ZQPZ_ETFZL_XXPL_ETFGM_SEARCH_L", fetched_at=fetched_at))
+            rows.append(ShareRecord(etf_code=etf_code, trade_date=returned_date, shares=shares, source="sse:COMMON_SSE_ZQPZ_ETFZL_XXPL_ETFGM_SEARCH_L", fetched_at=fetched_at))
         except Exception as exc:
             warnings.append(f"{trade_date}: 份额采集失败: {exc}")
         if pause_seconds:

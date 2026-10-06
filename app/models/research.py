@@ -57,6 +57,8 @@ class SignalResult(BaseModel):
     algorithm_version: str
     data_mode: Literal["demo", "live"]
     source_records: dict[str, int] = Field(default_factory=dict)
+    latest_values: dict[str, float | None] = Field(default_factory=dict)
+    trigger_details: list[dict[str, Any]] = Field(default_factory=list)
 
 class Evidence(BaseModel):
     evidence_id: str
@@ -66,7 +68,19 @@ class Evidence(BaseModel):
     source_url: str | None = None
     source_date: date | None = None
     details: dict[str, Any] = Field(default_factory=dict)
-    classification: Literal["verified_fact", "calculation", "inference", "unverified"] = "verified_fact"
+    classification: Literal["source_excerpt", "verified_fact", "calculation", "inference", "unverified"] = "unverified"
+
+class AgentTrace(BaseModel):
+    agent: str
+    status: Literal["success", "failed", "skipped"]
+    started_at: datetime
+    finished_at: datetime
+    duration_ms: int
+    summary: str
+    error: str | None = None
+    input_summary: dict[str, Any] = Field(default_factory=dict)
+    output_summary: dict[str, Any] = Field(default_factory=dict)
+    evidence_refs: list[str] = Field(default_factory=list)
 
 class ResearchState(BaseModel):
     task_id: str
@@ -78,6 +92,7 @@ class ResearchState(BaseModel):
     document_results: list[DocumentChunk] = Field(default_factory=list)
     evidence: list[Evidence] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    execution_trace: list[AgentTrace] = Field(default_factory=list)
     final_report: dict[str, Any] | None = None
     data_mode: Literal["demo", "live"] = "demo"
 
@@ -93,17 +108,57 @@ class SyncResult(BaseModel):
     share_rows: int = 0
     warnings: list[str] = Field(default_factory=list)
 
+
+class MonitorAlert(BaseModel):
+    alert_key: str
+    etf_code: str
+    as_of_date: date
+    category: str
+    severity: Literal["info", "warning", "error"]
+    title: str
+    message: str
+    created_at: datetime
+
+
+class MonitorRun(BaseModel):
+    run_id: str
+    as_of_date: date
+    started_at: datetime
+    finished_at: datetime
+    status: Literal["success", "partial", "failed"]
+    etf_results: list[dict[str, Any]] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
+class ScheduledRun(BaseModel):
+    run_key: str
+    as_of_date: date
+    slot: Literal["primary", "retry"]
+    started_at: datetime
+    finished_at: datetime
+    status: Literal["success", "partial", "failed", "skipped"]
+    reason: str
+    monitor_run_id: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+
 class ResearchReport(BaseModel):
     title: str = "ETF研究报告"
+    question: str
+    question_focus: list[str] = Field(default_factory=list)
+    answer_status: Literal["answered", "partial", "unsupported"]
+    direct_answer: str
     data_mode: Literal["demo", "live"]
     etf: dict[str, Any] | None
     as_of_date: date
     data_cutoff_date: date | None = None
+    source_excerpts: list[dict[str, Any]] = Field(default_factory=list)
+    source_quotes: list[str] = Field(default_factory=list)
     verified_facts: list[dict[str, Any]] = Field(default_factory=list)
     calculated_results: dict[str, Any]
     reasonable_inferences: list[str] = Field(default_factory=list)
     unverified_information: list[str] = Field(default_factory=list)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    execution_trace: list[AgentTrace] = Field(default_factory=list)
     disclaimer: str
 

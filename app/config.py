@@ -30,8 +30,13 @@ LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "").rstrip("/")
 LLM_MODEL_ID = os.getenv("LLM_MODEL_ID", "")
 LLM_ENABLED = os.getenv("LLM_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
-ALLOWED_ETFS = {"510300": "沪深300ETF"}
-ALGORITHM_VERSION = "v0.1"
+ETF_CATALOG = {
+    "510300": {"name": "沪深300ETF", "fund_company": "华泰柏瑞基金管理有限公司", "index_name": "沪深300指数"},
+    "510050": {"name": "华夏上证50ETF", "fund_company": "华夏基金管理有限公司", "index_name": "上证50指数"},
+    "510500": {"name": "南方中证500ETF", "fund_company": "南方基金管理股份有限公司", "index_name": "中证500指数"},
+}
+ALLOWED_ETFS = {code: item["name"] for code, item in ETF_CATALOG.items()}
+ALGORITHM_VERSION = "v0.2"
 
 def database_path_for_mode(mode: str | None = None) -> Path:
     selected = (mode or DATA_MODE).lower()

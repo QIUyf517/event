@@ -4,7 +4,7 @@ import sqlite3
 from datetime import date, datetime
 from pathlib import Path
 from typing import Iterable
-from app.models.research import Document, DocumentChunk, Evidence, ETFProfile, MarketBar, ShareRecord, SignalResult, SyncResult
+from app.models.research import Document, DocumentChunk, Evidence, ETFProfile, MarketBar, MonitorAlert, MonitorRun, ScheduledRun, ShareRecord, SignalResult, SyncResult
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS etf_master (etf_code TEXT PRIMARY KEY, name TEXT NOT NULL, fund_company TEXT, index_name TEXT, source TEXT);
@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS evidence (evidence_id TEXT PRIMARY KEY, task_id TEXT 
 CREATE TABLE IF NOT EXISTS research_reports (task_id TEXT PRIMARY KEY, payload TEXT NOT NULL, created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS sync_runs (sync_id TEXT PRIMARY KEY, etf_code TEXT NOT NULL, status TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS tool_calls (call_id TEXT PRIMARY KEY, task_id TEXT NOT NULL, tool_name TEXT NOT NULL, status TEXT NOT NULL, input_payload TEXT NOT NULL, output_payload TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS monitor_runs (run_id TEXT PRIMARY KEY, as_of_date TEXT NOT NULL, status TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS monitor_alerts (alert_key TEXT PRIMARY KEY, etf_code TEXT NOT NULL, as_of_date TEXT NOT NULL, category TEXT NOT NULL, severity TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS scheduled_runs (run_key TEXT PRIMARY KEY, as_of_date TEXT NOT NULL, slot TEXT NOT NULL, status TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);
 """
 
 class SQLiteRepository:
@@ -29,6 +32,15 @@ class SQLiteRepository:
         self.conn.executescript(SCHEMA)
         self._ensure_column("document_chunks", "location", "TEXT")
         self.conn.commit()
+
+    @classmethod
+    def open_readonly(cls, path: str | Path):
+        """给并行研究任务各开一个独立的只读连接。"""
+        instance = cls.__new__(cls)
+        instance.path = Path(path)
+        instance.conn = sqlite3.connect(instance.path.resolve().as_uri() + "?mode=ro", uri=True)
+        instance.conn.row_factory = sqlite3.Row
+        return instance
 
     def _ensure_column(self, table: str, column: str, definition: str):
         columns = {row[1] for row in self.conn.execute(f"PRAGMA table_info({table})")}
@@ -99,6 +111,49 @@ class SQLiteRepository:
     def save_signal(self, result: SignalResult):
         self.conn.execute("INSERT OR REPLACE INTO signal_results VALUES (?, ?, ?, ?)", (result.etf_code, result.as_of_date.isoformat(), result.model_dump_json(), result.algorithm_version))
         self.conn.commit()
+
+    def save_signals(self, results: Iterable[SignalResult]):
+        self.conn.executemany("INSERT OR REPLACE INTO signal_results VALUES (?, ?, ?, ?)",
+            [(item.etf_code, item.as_of_date.isoformat(), item.model_dump_json(), item.algorithm_version)
+             for item in results])
+        self.conn.commit()
+
+    def signal_history(self, etf_code: str, start_date: date, end_date: date, algorithm_version: str) -> list[SignalResult]:
+        rows = self.conn.execute("SELECT payload FROM signal_results WHERE etf_code=? AND as_of_date BETWEEN ? AND ? AND algorithm_version=? ORDER BY as_of_date",
+            (etf_code, start_date.isoformat(), end_date.isoformat(), algorithm_version)).fetchall()
+        return [SignalResult.model_validate_json(row[0]) for row in rows]
+
+    def save_monitor_run(self, result: MonitorRun):
+        self.conn.execute("INSERT OR REPLACE INTO monitor_runs VALUES (?, ?, ?, ?, ?)",
+            (result.run_id, result.as_of_date.isoformat(), result.status, result.model_dump_json(), result.started_at.isoformat()))
+        self.conn.commit()
+
+    def save_monitor_alerts(self, alerts: Iterable[MonitorAlert]):
+        self.conn.executemany("INSERT OR IGNORE INTO monitor_alerts VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [(item.alert_key, item.etf_code, item.as_of_date.isoformat(), item.category,
+              item.severity, item.model_dump_json(), item.created_at.isoformat()) for item in alerts])
+        self.conn.commit()
+
+    def recent_monitor_alerts(self, limit: int = 50) -> list[MonitorAlert]:
+        rows = self.conn.execute("SELECT payload FROM monitor_alerts ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
+        return [MonitorAlert.model_validate_json(row[0]) for row in rows]
+
+    def save_scheduled_run(self, result: ScheduledRun):
+        self.conn.execute("INSERT OR REPLACE INTO scheduled_runs VALUES (?, ?, ?, ?, ?, ?)",
+            (result.run_key, result.as_of_date.isoformat(), result.slot, result.status,
+             result.model_dump_json(), result.started_at.isoformat()))
+        self.conn.commit()
+
+    def scheduled_run(self, as_of_date: date, slot: str) -> ScheduledRun | None:
+        row = self.conn.execute(
+            "SELECT payload FROM scheduled_runs WHERE as_of_date=? AND slot=?",
+            (as_of_date.isoformat(), slot)).fetchone()
+        return ScheduledRun.model_validate_json(row[0]) if row else None
+
+    def recent_scheduled_runs(self, limit: int = 20) -> list[ScheduledRun]:
+        rows = self.conn.execute(
+            "SELECT payload FROM scheduled_runs ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
+        return [ScheduledRun.model_validate_json(row[0]) for row in rows]
 
     def save_task(self, task_id: str, question: str, status: str = "running"):
         self.conn.execute("INSERT OR REPLACE INTO research_tasks VALUES (?, ?, ?, ?)", (task_id, question, status, datetime.utcnow().isoformat()))

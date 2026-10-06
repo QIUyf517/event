@@ -3,15 +3,16 @@ import json
 from datetime import date, timedelta
 
 from app.agents.single_agent import SingleResearchAgent
-from app.config import DATA_MODE, database_path_for_mode
+from app.config import ALLOWED_ETFS, DATA_MODE, database_path_for_mode
 from app.data.repositories.sqlite import SQLiteRepository
 from app.data.seed import seed_demo, seed_profile
 from app.data.sync import sync_market_data
 from app.doctor import run_checks
+from app.monitoring.service import compare_etfs, run_monitor_once, run_scheduled_monitor, scheduled_target_date
 from app.rag.ingest import ingest_local, ingest_official_url
 from app.tools.research_tools import ResearchTools
 
-DEFAULT_QUESTION = "分析510300最近20个交易日的资金信号，并结合公开资料解释可能原因"
+DEFAULT_QUESTION = "分析当前资金信号，并结合已入库公开资料说明证据和局限"
 
 def parse_date(value: str) -> date:
     return date.fromisoformat(value)
@@ -31,6 +32,22 @@ def build_parser() -> argparse.ArgumentParser:
     research.add_argument("question", nargs="?", default=DEFAULT_QUESTION)
     research.add_argument("--etf", default="510300")
     research.add_argument("--as-of", type=parse_date, default=date.today())
+    monitor = sub.add_parser("monitor-once", help="手动执行一次三只ETF监控")
+    monitor.add_argument("--as-of", type=parse_date, default=date.today())
+    monitor.add_argument("--no-sync", action="store_true", help="仅使用本地数据，不联网同步")
+    scheduled = sub.add_parser("scheduled-monitor", help="供系统定时任务执行日终监控")
+    scheduled.add_argument("--slot", choices=["primary", "retry"], required=True)
+    scheduled.add_argument("--as-of", type=parse_date, help="默认按当前时间判断正常运行日或补跑目标日")
+    scheduled.add_argument("--force", action="store_true", help="忽略当日同一时段的已有执行记录")
+    comparison = sub.add_parser("compare", help="按同一查询日期对比ETF")
+    comparison.add_argument("--etfs", nargs="+", default=list(ALLOWED_ETFS))
+    comparison.add_argument("--as-of", type=parse_date, default=date.today())
+    history = sub.add_parser("signal-history", help="查看已生成的历史信号")
+    history.add_argument("--etf", default="510300")
+    history.add_argument("--start", type=parse_date, default=date.today() - timedelta(days=120))
+    history.add_argument("--end", type=parse_date, default=date.today())
+    alerts = sub.add_parser("alerts", help="查看本地提醒")
+    alerts.add_argument("--limit", type=int, default=50)
     for name in ("ingest-local", "ingest-url"):
         ingest = sub.add_parser(name)
         ingest.add_argument("source")
@@ -51,20 +68,41 @@ def main():
         raise SystemExit("seed-demo 只能写入demo数据库")
     if args.command == "sync-market" and args.mode != "live":
         raise SystemExit("sync-market 必须使用 --mode live")
+    if args.command == "monitor-once" and args.mode != "live" and not args.no_sync:
+        raise SystemExit("演示模式监控须使用 --no-sync")
+    if args.command == "scheduled-monitor" and args.mode != "live":
+        raise SystemExit("定时监控必须使用 --mode live")
+    if hasattr(args, "etf") and args.etf not in ALLOWED_ETFS:
+        raise SystemExit(f"第一阶段仅支持: {', '.join(ALLOWED_ETFS)}")
+    if args.command == "compare" and any(code not in ALLOWED_ETFS for code in args.etfs):
+        raise SystemExit(f"仅支持: {', '.join(ALLOWED_ETFS)}")
     repo = SQLiteRepository(database_path_for_mode(args.mode))
     try:
         if args.command == "seed-demo":
             seed_demo(repo, args.as_of)
             result = {"status": "success", "mode": "demo", "as_of_date": args.as_of.isoformat()}
         elif args.command == "sync-market":
-            seed_profile(repo)
+            seed_profile(repo, args.etf)
             result = sync_market_data(repo, args.etf, args.start, args.end).model_dump(mode="json")
         elif args.command == "research":
             if args.mode == "demo" and repo.profile(args.etf) is None:
                 raise SystemExit("demo数据库为空，请先运行: etf-research --mode demo seed-demo")
             if args.mode == "live":
-                seed_profile(repo)
+                seed_profile(repo, args.etf)
             result = SingleResearchAgent(ResearchTools(repo, args.mode)).run(args.question, args.etf, args.as_of).final_report
+        elif args.command == "monitor-once":
+            result = run_monitor_once(repo, args.as_of, args.mode, sync_live=not args.no_sync).model_dump(mode="json")
+        elif args.command == "scheduled-monitor":
+            target_date = args.as_of or scheduled_target_date()
+            result = run_scheduled_monitor(repo, target_date, args.slot, force=args.force).model_dump(mode="json")
+        elif args.command == "compare":
+            result = compare_etfs(repo, args.etfs, args.as_of, args.mode)
+        elif args.command == "signal-history":
+            from app.config import ALGORITHM_VERSION
+            result = [item.model_dump(mode="json") for item in repo.signal_history(
+                args.etf, args.start, args.end, ALGORITHM_VERSION)]
+        elif args.command == "alerts":
+            result = [item.model_dump(mode="json") for item in repo.recent_monitor_alerts(args.limit)]
         else:
             metadata = {"title": args.title, "publisher": args.publisher, "published_at": args.published_at, "document_type": args.document_type, "etf_code": args.etf}
             if args.command == "ingest-local":

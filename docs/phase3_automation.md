@@ -1,0 +1,42 @@
+# 第三阶段日终自动更新
+
+## 目标
+
+自动更新用于保持真实数据库的日线、ETF份额、历史信号和异常记录连续。它只生成研究观察信号，不执行交易，也不把份额变化解释为真实资金净流入。
+
+## 执行流程
+
+1. Windows任务在工作日18:30调用 `scheduled-monitor --slot primary`。
+2. 已登记的周末或上交所休市日直接记录为跳过，不联网。
+3. 对三只ETF同步日线，并检查本地最近30个交易日的份额披露。
+4. 回填历史信号，执行数据异常检测，保存监控结果和本地提醒。
+5. 如果三只ETF的当日行情和份额都完整，20:30任务只记录“无需重试”。
+6. 如果18:30结果不完整，20:30再同步一次；第二次仍不完整时保留失败原因，等待页面查看或人工处理。
+
+## 可靠性边界
+
+- `scheduled_runs` 以“日期 + 时段”为唯一键；同一任务重复触发默认返回已有结果。
+- 行情和份额表自身以“ETF代码 + 日期”为唯一键，重新同步不会累加重复记录。
+- 份额查询不再只依赖本次新行情，而是覆盖数据库中最近30个交易日，因此可以补录晚发布的份额。
+- 真实来源失败时不会回退到演示数据。
+- 任务使用当前Windows用户的交互会话。关机期间无法运行，登录后由 `StartWhenAvailable` 补跑；18:30以前启动的补跑会处理最近一个已知交易日，避免把早晨尚未收盘的日期误记为已更新。
+- 休市表明确覆盖2026年。未来年度安排公布后应更新休市范围；在未知年度，周一至周五会尝试同步，接口无数据时记录不完整，不伪造交易日。
+
+## 可核对证据
+
+- 页面显示最近一次自动任务的完成时间、时段、状态和原因。
+- `scheduled_runs` 保存主任务与重试决策。
+- `monitor_runs` 保存三只ETF的同步结果、数据截止日期和触发指标。
+- `sync_runs` 保存每只ETF的行情及份额抓取状态。
+- `monitor_alerts` 保存数据滞后、异常数值、同步失败和信号变化提醒。
+
+## 验收命令
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_live_sync.py tests/test_monitoring.py -q
+.\.venv\Scripts\python.exe -m scripts.accept_phase3_live --as-of 2026-10-07
+powershell -ExecutionPolicy Bypass -File .\scripts\install_windows_tasks.ps1
+Get-ScheduledTask -TaskName "ETFResearchMonitor-*" | Get-ScheduledTaskInfo
+```
+
+验收时必须分别报告流程状态和数据日期。任务运行成功只证明程序执行完成；如果最新行情仍停留在更早日期，不能声称已经取得查询日数据。
