@@ -1,6 +1,8 @@
 import argparse
 import json
+import tempfile
 from datetime import date, timedelta
+from pathlib import Path
 
 from app.agents.single_agent import SingleResearchAgent
 from app.config import ALLOWED_ETFS, DATA_MODE, database_path_for_mode
@@ -8,6 +10,7 @@ from app.data.repositories.sqlite import SQLiteRepository
 from app.data.seed import seed_demo, seed_profile
 from app.data.sync import sync_market_data
 from app.doctor import run_checks
+from app.evaluation.service import DEFAULT_OUTPUT, evaluate_questions, save_evaluation
 from app.monitoring.service import compare_etfs, run_monitor_once, run_scheduled_monitor, scheduled_target_date
 from app.rag.ingest import ingest_local, ingest_official_url
 from app.tools.research_tools import ResearchTools
@@ -48,6 +51,9 @@ def build_parser() -> argparse.ArgumentParser:
     history.add_argument("--end", type=parse_date, default=date.today())
     alerts = sub.add_parser("alerts", help="查看本地提醒")
     alerts.add_argument("--limit", type=int, default=50)
+    evaluate = sub.add_parser("evaluate", help="运行固定问题评估并保存JSON结果")
+    evaluate.add_argument("--as-of", type=parse_date, default=date.today())
+    evaluate.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     for name in ("ingest-local", "ingest-url"):
         ingest = sub.add_parser(name)
         ingest.add_argument("source")
@@ -76,6 +82,13 @@ def main():
         raise SystemExit(f"第一阶段仅支持: {', '.join(ALLOWED_ETFS)}")
     if args.command == "compare" and any(code not in ALLOWED_ETFS for code in args.etfs):
         raise SystemExit(f"仅支持: {', '.join(ALLOWED_ETFS)}")
+    if args.command == "evaluate":
+        with tempfile.TemporaryDirectory(prefix="etf-evaluation-") as temp_dir:
+            evaluation = evaluate_questions(Path(temp_dir) / "evaluation.sqlite3", args.as_of)
+        output = save_evaluation(evaluation, args.output)
+        print(json.dumps({"status": "success", "output": str(output), **evaluation},
+                         ensure_ascii=False, indent=2, default=str))
+        return
     repo = SQLiteRepository(database_path_for_mode(args.mode))
     try:
         if args.command == "seed-demo":

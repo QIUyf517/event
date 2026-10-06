@@ -8,6 +8,7 @@ from pathlib import Path
 
 from app.config import ALGORITHM_VERSION, ALLOWED_ETFS, database_path_for_mode
 from app.data.repositories.sqlite import SQLiteRepository
+from app.models.research import UserSettings
 from app.monitoring.service import compare_etfs, run_monitor_once
 from scripts.accept_phase2_live import snapshot_live_database
 
@@ -17,7 +18,11 @@ def check_manual_button(snapshot: Path) -> str:
     from streamlit.testing.v1 import AppTest
 
     config.DATABASE_PATH = snapshot.with_name("etf_research.sqlite3")
+    config.SETTINGS_DATABASE_PATH = snapshot.with_name("app_settings.sqlite3")
     config.DATA_MODE = "live"
+    settings_repo = SQLiteRepository(config.SETTINGS_DATABASE_PATH)
+    settings_repo.save_user_settings(UserSettings(default_mode="live"))
+    settings_repo.close()
     page = AppTest.from_file(str(Path(__file__).resolve().parents[1] /
         "app" / "frontend" / "streamlit_app.py")).run()
     assert not page.exception, [item.message for item in page.exception]

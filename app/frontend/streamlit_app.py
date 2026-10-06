@@ -1,15 +1,17 @@
 import html
+import json
 from datetime import date, timedelta
 
 import pandas as pd
 import streamlit as st
 
 from app.agents.single_agent import SingleResearchAgent
-from app.config import ALGORITHM_VERSION, ALLOWED_ETFS, DATA_MODE, database_path_for_mode
+from app.config import ALGORITHM_VERSION, ALLOWED_ETFS, DATA_MODE, SETTINGS_DATABASE_PATH, database_path_for_mode
 from app.data.repositories.sqlite import SQLiteRepository
 from app.data.seed import seed_demo, seed_profile
 from app.data.sync import sync_market_data
 from app.monitoring.service import compare_etfs, run_monitor_once
+from app.reporting.pdf_export import render_report_pdf, report_pdf_filename
 from app.tools.research_tools import ResearchTools
 
 
@@ -267,12 +269,16 @@ def section_heading(title, note):
     )
 
 
+settings_repo = SQLiteRepository(SETTINGS_DATABASE_PATH)
+user_settings = settings_repo.user_settings()
+settings_repo.close()
+
 with st.sidebar:
     st.markdown("## 研究设置")
     active_mode = st.radio(
         "数据模式",
         ("demo", "live"),
-        index=0 if DATA_MODE == "demo" else 1,
+        index=0 if user_settings.default_mode == "demo" else 1,
         format_func=lambda mode: "演示数据" if mode == "demo" else "真实数据",
         horizontal=True,
     )
@@ -303,18 +309,37 @@ with st.sidebar:
     st.markdown('<div class="sidebar-label">当前使用的数据</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="sidebar-value">本地{MODE_LABELS[active_mode]}文件</div>', unsafe_allow_html=True)
     st.caption("真实数据与演示数据严格隔离。同步失败时不会自动混入演示数据。")
-    sync_clicked = active_mode == "live" and st.button("更新所选基金的真实数据", use_container_width=True)
+    sync_clicked = active_mode == "live" and st.button("更新所选基金的真实数据", width="stretch")
+    with st.expander("个人偏好"):
+        preferred_etf = st.selectbox("默认研究标的", list(ALLOWED_ETFS),
+            index=list(ALLOWED_ETFS).index(user_settings.default_etf),
+            format_func=lambda code: f"{code} · {ALLOWED_ETFS[code]}", key="preferred_etf")
+        preferred_question = st.text_area("默认研究问题", user_settings.default_question,
+            height=88, key="preferred_question")
+        preferred_page_size = st.slider("报告存档每页数量", 5, 50, user_settings.report_page_size, 5)
+        if st.button("保存个人偏好", width="stretch"):
+            settings_repo = SQLiteRepository(SETTINGS_DATABASE_PATH)
+            settings_repo.save_user_settings(user_settings.model_copy(update={
+                "default_etf": preferred_etf, "default_mode": active_mode,
+                "default_question": preferred_question.strip() or user_settings.default_question,
+                "report_page_size": preferred_page_size}))
+            settings_repo.close()
+            st.success("个人偏好已保存，下次打开页面时生效。")
 
 st.markdown('<div class="section-kicker">生成新的研究简报</div>', unsafe_allow_html=True)
 left, right = st.columns([1, 2.25], gap="large")
 with left:
-    etf_code = st.selectbox("研究标的", list(ALLOWED_ETFS), format_func=lambda code: f"{code} · {ALLOWED_ETFS[code]}")
+    etf_code = st.selectbox("研究标的", list(ALLOWED_ETFS),
+        index=list(ALLOWED_ETFS).index(user_settings.default_etf),
+        format_func=lambda code: f"{code} · {ALLOWED_ETFS[code]}")
     if active_mode == "live" and repo.profile(etf_code) is None:
         seed_profile(repo, etf_code)
 with right:
     question = st.text_area(
         "研究问题",
-        f"分析{etf_code}当前资金信号，并结合已入库公开资料说明证据和局限",
+        user_settings.default_question.replace("当前", f"{etf_code}当前", 1)
+            if "当前" in user_settings.default_question and etf_code not in user_settings.default_question
+            else user_settings.default_question,
         height=96,
         key=f"research_question_{etf_code}",
     )
@@ -333,7 +358,7 @@ if sync_clicked:
 
 run_col, hint_col = st.columns([1, 3.5], vertical_alignment="center")
 with run_col:
-    run_research = st.button("生成研究简报", type="primary", use_container_width=True, disabled=not question.strip())
+    run_research = st.button("生成研究简报", type="primary", width="stretch", disabled=not question.strip())
 with hint_col:
     st.caption("输入具体问题后，系统会先直接回答；超出当前支持范围的问法会明确提示。")
 
@@ -435,7 +460,7 @@ elif report:
         st.dataframe(pd.DataFrame([{"指标": INDICATOR_LABELS.get(item["indicator"], item["indicator"]),
             "结果": indicator_value(item["indicator"], item["value"]),
             "对信号的作用": contribution_label(item["contribution"]), "如何理解": item["reason"]} for item in trigger_details]),
-            use_container_width=True, hide_index=True)
+            width="stretch", hide_index=True)
     else:
         st.info("五项指标尚不完整，未形成完整共振信号。")
 
@@ -489,9 +514,39 @@ elif report:
     with st.expander("查看研究报告的完整记录"):
         st.caption("这里保留研究问题、计算结果、资料来源和研究过程，便于逐项核对。")
         st.json(readable_details(report))
+    st.download_button("下载当前报告PDF", data=render_report_pdf(report),
+        file_name=report_pdf_filename(report), mime="application/pdf", width="stretch")
 else:
     st.markdown('<div class="brief-line"></div>', unsafe_allow_html=True)
     st.info("输入研究问题并生成简报后，这里会先给出针对问题的回答，再展示可核对的指标和资料。")
+
+section_heading("报告存档", "研究结果自动保存，可查看结构化记录并导出JSON或PDF")
+archive = repo.list_reports(user_settings.report_page_size)
+if archive:
+    st.dataframe(pd.DataFrame([{"报告编号": item["task_id"], "生成时间": item["created_at"],
+        "基金": f"{item.get('etf_code') or '未知'} · {item.get('etf_name') or '名称未知'}",
+        "查询日期": item.get("as_of_date"), "数据截止日期": item.get("data_cutoff_date") or "暂无",
+        "问题": item.get("question"), "回答状态": item.get("answer_status")} for item in archive]),
+        width="stretch", hide_index=True)
+    archive_by_id = {item["task_id"]: item for item in archive}
+    selected_report_id = st.selectbox("选择一份存档", list(archive_by_id),
+        format_func=lambda task_id: f"{archive_by_id[task_id]['created_at']} · {archive_by_id[task_id].get('etf_code')} · {archive_by_id[task_id]['question'][:36]}")
+    archived = repo.get_report(selected_report_id)
+    if archived:
+        export_left, export_right = st.columns(2)
+        with export_left:
+            st.download_button("下载存档JSON", data=json.dumps(archived, ensure_ascii=False, indent=2),
+                file_name=f"ETF-research-{selected_report_id}.json", mime="application/json",
+                width="stretch")
+        with export_right:
+            st.download_button("下载存档PDF", data=render_report_pdf(archived["report"], selected_report_id),
+                file_name=report_pdf_filename(archived["report"]), mime="application/pdf",
+                width="stretch")
+        with st.expander("查看所选存档摘要"):
+            st.write(archived["report"].get("direct_answer", "暂无回答"))
+            st.caption(f"报告编号：{selected_report_id} · 保存时间：{archived['created_at']}")
+else:
+    st.caption("当前数据模式还没有研究报告存档。")
 
 section_heading("三只基金的数据检查", "真实模式支持18:30自动更新和20:30条件重试，也可以随时手动检查")
 if active_mode == "live":
@@ -507,7 +562,7 @@ if active_mode == "live":
     else:
         st.caption("真实数据库中还没有自动任务运行记录；安装Windows定时任务后，执行结果会显示在这里。")
 monitor_label = "手动更新并检查三只基金" if active_mode == "live" else "检查三只基金的演示数据（不联网）"
-if st.button(monitor_label, use_container_width=True):
+if st.button(monitor_label, width="stretch"):
     with st.spinner("正在检查三只ETF的数据与信号……"):
         monitor_result = run_monitor_once(repo, date.today(), active_mode, sync_live=active_mode == "live")
         st.session_state[f"monitor_result_{active_mode}"] = monitor_result.model_dump(mode="json")
@@ -527,7 +582,7 @@ if monitor_result:
             "最新行情日期": item.get("latest_market_date") or "暂无数据",
             "最新份额日期": item.get("latest_share_date") or "暂无数据",
         })
-    st.dataframe(pd.DataFrame(monitor_rows), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(monitor_rows), width="stretch", hide_index=True)
     for item in monitor_result["etf_results"]:
         if item.get("error"):
             st.error(f"{item['etf_code']} 检查失败：{item['error']}")
@@ -547,7 +602,7 @@ for item in comparison["rows"]:
         "成交额历史分位": indicator_value("turnover_percentile", item["indicators"].get("turnover_percentile")),
         "近5日价格变化": indicator_value("price_return_5d", item["indicators"].get("price_return_5d")),
         "近5日成交量对比前5日": indicator_value("volume_ratio_5d", item["indicators"].get("volume_ratio_5d"))})
-st.dataframe(pd.DataFrame(comparison_rows), use_container_width=True, hide_index=True)
+st.dataframe(pd.DataFrame(comparison_rows), width="stretch", hide_index=True)
 st.caption("价格位置和成交额分位越接近100%，表示在各自历史样本中越靠高位；成交量比高于1倍，表示最近5日比前5日更活跃。份额变化仅是申赎行为的间接线索。")
 for warning in comparison["warnings"]:
     st.warning(warning)
@@ -562,7 +617,7 @@ if history:
         "行情截止日期": readable_date(item.source_dates.get("market")),
         "份额截止日期": readable_date(item.source_dates.get("shares")),
         "缺少的指标": readable_missing(item.missing_fields)} for item in history[-60:]]),
-        use_container_width=True, hide_index=True)
+        width="stretch", hide_index=True)
 else:
     st.info("暂无当前算法版本的历史信号。点击上方手动监控后生成。")
 
@@ -579,5 +634,35 @@ if alerts:
             st.info(message)
 else:
     st.caption("当前没有本地提醒。")
+
+section_heading("运行日志", "查看自动任务、监控检查和数据同步是否真正完成")
+log_tabs = st.tabs(["自动任务", "监控检查", "数据同步"])
+with log_tabs[0]:
+    scheduled_log = repo.recent_scheduled_runs(20)
+    if scheduled_log:
+        st.dataframe(pd.DataFrame([{"日期": item.as_of_date, "时段": item.slot,
+            "状态": item.status, "开始时间": item.started_at, "完成时间": item.finished_at,
+            "说明": item.reason} for item in scheduled_log]), width="stretch", hide_index=True)
+    else:
+        st.caption("暂无自动任务记录。")
+with log_tabs[1]:
+    monitor_log = repo.recent_monitor_runs(20)
+    if monitor_log:
+        st.dataframe(pd.DataFrame([{"查询日期": item.as_of_date, "状态": item.status,
+            "开始时间": item.started_at, "完成时间": item.finished_at,
+            "基金数量": len(item.etf_results), "提示数量": len(item.warnings)} for item in monitor_log]),
+            width="stretch", hide_index=True)
+    else:
+        st.caption("暂无监控检查记录。")
+with log_tabs[2]:
+    sync_log = repo.recent_sync_runs(30)
+    if sync_log:
+        st.dataframe(pd.DataFrame([{"基金": item.etf_code, "开始日期": item.start_date,
+            "结束日期": item.end_date, "行情状态": item.market_status,
+            "份额状态": item.share_status, "行情记录": item.market_rows,
+            "份额记录": item.share_rows, "提示数量": len(item.warnings)} for item in sync_log]),
+            width="stretch", hide_index=True)
+    else:
+        st.caption("暂无数据同步记录。")
 
 repo.close()

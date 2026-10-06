@@ -165,6 +165,7 @@ def test_page_tables_and_detail_keys_are_readable_chinese(tmp_path, monkeypatch)
 
     monkeypatch.setattr(config, "DATABASE_PATH", tmp_path / "etf_research.sqlite3")
     monkeypatch.setattr(config, "DATA_MODE", "demo")
+    monkeypatch.setattr(config, "SETTINGS_DATABASE_PATH", tmp_path / "app_settings.sqlite3")
     repo = SQLiteRepository(config.database_path_for_mode("demo"))
     seed_demo(repo, AS_OF)
     repo.close()
@@ -174,14 +175,15 @@ def test_page_tables_and_detail_keys_are_readable_chinese(tmp_path, monkeypatch)
     next(button for button in page.button if button.label == "检查三只基金的演示数据（不联网）").click().run()
     assert not page.exception, [item.message for item in page.exception]
     frames = [item.value for item in page.dataframe]
-    assert len(frames) == 4
-    assert {"指标", "结果", "对信号的作用", "如何理解"} <= set(frames[0].columns)
-    assert {"基金", "检查结果", "行情更新", "最新观察信号"} <= set(frames[1].columns)
-    assert {"基金代码", "基金名称", "观察信号", "近60日价格位置"} <= set(frames[2].columns)
-    assert {"观察日期", "支持偏积极的指标", "缺少的指标"} <= set(frames[3].columns)
-    assert frames[0].iloc[0]["结果"].endswith("%")
-    assert frames[1].iloc[0]["检查结果"] == "已完成"
-    assert frames[2].iloc[0]["近60日价格位置"].endswith("%")
+    def frame_with(*required):
+        return next(frame for frame in frames if set(required) <= set(frame.columns))
+    indicators = frame_with("指标", "结果", "对信号的作用", "如何理解")
+    monitor = frame_with("基金", "检查结果", "行情更新", "最新观察信号")
+    comparison = frame_with("基金代码", "基金名称", "观察信号", "近60日价格位置")
+    frame_with("观察日期", "支持偏积极的指标", "缺少的指标")
+    assert indicators.iloc[0]["结果"].endswith("%")
+    assert monitor.iloc[0]["检查结果"] == "已完成"
+    assert comparison.iloc[0]["近60日价格位置"].endswith("%")
 
     def keys(value):
         if isinstance(value, dict):

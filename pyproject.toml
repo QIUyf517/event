@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "a-share-etf-research-agent"
-version = "0.1.0"
+version = "0.2.0"
 description = "A股ETF公开资料与资金信号研究助手"
 requires-python = ">=3.10"
 dependencies = [
@@ -15,15 +15,19 @@ dependencies = [
   "requests==2.32.5",
   "beautifulsoup4==4.14.3",
   "pypdf==6.19.0",
+  "fastapi==0.142.2",
+  "uvicorn==0.54.0",
+  "reportlab==5.0.1",
 ]
 
 [project.optional-dependencies]
 market = ["akshare==1.18.97"]
-dev = ["pytest==8.4.2"]
+dev = ["pytest==8.4.2", "httpx2==2.13.1"]
 
 [project.scripts]
 etf-research = "app.cli:main"
 etf-doctor = "app.doctor:main"
+etf-api = "app.api.main:run"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

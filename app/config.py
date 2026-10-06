@@ -26,6 +26,12 @@ if DATA_MODE not in {"demo", "live"}:
     raise ValueError("ETF_DATA_MODE 只能是 demo 或 live")
 REQUEST_TIMEOUT = int(os.getenv("ETF_REQUEST_TIMEOUT", "20"))
 MAX_SHARE_DATES = int(os.getenv("ETF_MAX_SHARE_DATES", "30"))
+API_WRITE_KEY = os.getenv("ETF_API_WRITE_KEY", "")
+API_CORS_ORIGINS = tuple(item.strip() for item in os.getenv("ETF_API_CORS_ORIGINS", "").split(",") if item.strip())
+PDF_FONT_PATH = os.getenv("ETF_PDF_FONT_PATH", "")
+SETTINGS_DATABASE_PATH = Path(os.getenv("ETF_SETTINGS_DATABASE_PATH", PROJECT_ROOT / "data" / "app_settings.sqlite3"))
+if not SETTINGS_DATABASE_PATH.is_absolute():
+    SETTINGS_DATABASE_PATH = PROJECT_ROOT / SETTINGS_DATABASE_PATH
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "").rstrip("/")
 LLM_MODEL_ID = os.getenv("LLM_MODEL_ID", "")
@@ -37,6 +43,7 @@ ETF_CATALOG = {
 }
 ALLOWED_ETFS = {code: item["name"] for code, item in ETF_CATALOG.items()}
 ALGORITHM_VERSION = "v0.2"
+APP_VERSION = "0.2.0"
 
 def database_path_for_mode(mode: str | None = None) -> Path:
     selected = (mode or DATA_MODE).lower()

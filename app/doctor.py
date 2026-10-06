@@ -5,7 +5,7 @@ from pathlib import Path
 
 from app.config import DATA_MODE, LLM_API_KEY, LLM_BASE_URL, LLM_ENABLED, LLM_MODEL_ID, database_path_for_mode
 
-REQUIRED = ("pydantic", "streamlit", "requests", "beautifulsoup4", "pypdf", "akshare", "numpy", "pandas", "pytest")
+REQUIRED = ("pydantic", "streamlit", "requests", "beautifulsoup4", "pypdf", "akshare", "numpy", "pandas", "pytest", "fastapi", "uvicorn", "reportlab", "httpx2")
 
 def run_checks() -> dict:
     versions = {}

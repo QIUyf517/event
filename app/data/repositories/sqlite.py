@@ -4,7 +4,7 @@ import sqlite3
 from datetime import date, datetime
 from pathlib import Path
 from typing import Iterable
-from app.models.research import Document, DocumentChunk, Evidence, ETFProfile, MarketBar, MonitorAlert, MonitorRun, ScheduledRun, ShareRecord, SignalResult, SyncResult
+from app.models.research import Document, DocumentChunk, Evidence, ETFProfile, MarketBar, MonitorAlert, MonitorRun, ScheduledRun, ShareRecord, SignalResult, SyncResult, UserSettings
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS etf_master (etf_code TEXT PRIMARY KEY, name TEXT NOT NULL, fund_company TEXT, index_name TEXT, source TEXT);
@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS tool_calls (call_id TEXT PRIMARY KEY, task_id TEXT NO
 CREATE TABLE IF NOT EXISTS monitor_runs (run_id TEXT PRIMARY KEY, as_of_date TEXT NOT NULL, status TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS monitor_alerts (alert_key TEXT PRIMARY KEY, etf_code TEXT NOT NULL, as_of_date TEXT NOT NULL, category TEXT NOT NULL, severity TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS scheduled_runs (run_key TEXT PRIMARY KEY, as_of_date TEXT NOT NULL, slot TEXT NOT NULL, status TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS user_settings (profile_key TEXT PRIMARY KEY, payload TEXT NOT NULL, updated_at TEXT NOT NULL);
 """
 
 class SQLiteRepository:
@@ -155,6 +156,28 @@ class SQLiteRepository:
             "SELECT payload FROM scheduled_runs ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
         return [ScheduledRun.model_validate_json(row[0]) for row in rows]
 
+    def recent_monitor_runs(self, limit: int = 20) -> list[MonitorRun]:
+        rows = self.conn.execute(
+            "SELECT payload FROM monitor_runs ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
+        return [MonitorRun.model_validate_json(row[0]) for row in rows]
+
+    def recent_sync_runs(self, limit: int = 50) -> list[SyncResult]:
+        rows = self.conn.execute(
+            "SELECT payload FROM sync_runs ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
+        return [SyncResult.model_validate_json(row[0]) for row in rows]
+
+    def user_settings(self, profile_key: str = "local") -> UserSettings:
+        row = self.conn.execute(
+            "SELECT payload FROM user_settings WHERE profile_key=?", (profile_key,)).fetchone()
+        return UserSettings.model_validate_json(row[0]) if row else UserSettings()
+
+    def save_user_settings(self, settings: UserSettings, profile_key: str = "local") -> UserSettings:
+        saved = settings.model_copy(update={"updated_at": datetime.now().astimezone()})
+        self.conn.execute("INSERT OR REPLACE INTO user_settings VALUES (?, ?, ?)",
+            (profile_key, saved.model_dump_json(), saved.updated_at.isoformat()))
+        self.conn.commit()
+        return saved
+
     def save_task(self, task_id: str, question: str, status: str = "running"):
         self.conn.execute("INSERT OR REPLACE INTO research_tasks VALUES (?, ?, ?, ?)", (task_id, question, status, datetime.utcnow().isoformat()))
         self.conn.commit()
@@ -184,4 +207,27 @@ class SQLiteRepository:
     def save_report(self, task_id: str, report: dict):
         self.conn.execute("INSERT OR REPLACE INTO research_reports VALUES (?, ?, ?)", (task_id, json.dumps(report, ensure_ascii=False, default=str), datetime.utcnow().isoformat()))
         self.conn.commit()
+
+    def get_report(self, task_id: str) -> dict | None:
+        row = self.conn.execute(
+            "SELECT task_id,payload,created_at FROM research_reports WHERE task_id=?", (task_id,)).fetchone()
+        if not row:
+            return None
+        return {"task_id": row["task_id"], "created_at": row["created_at"],
+                "report": json.loads(row["payload"])}
+
+    def list_reports(self, limit: int = 20, offset: int = 0) -> list[dict]:
+        rows = self.conn.execute(
+            "SELECT task_id,payload,created_at FROM research_reports ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            (limit, offset)).fetchall()
+        results = []
+        for row in rows:
+            report = json.loads(row["payload"])
+            etf = report.get("etf") or {}
+            results.append({"task_id": row["task_id"], "created_at": row["created_at"],
+                "title": report.get("title", "ETF研究报告"), "question": report.get("question", ""),
+                "answer_status": report.get("answer_status"), "data_mode": report.get("data_mode"),
+                "etf_code": etf.get("etf_code"), "etf_name": etf.get("name"),
+                "as_of_date": report.get("as_of_date"), "data_cutoff_date": report.get("data_cutoff_date")})
+        return results
 

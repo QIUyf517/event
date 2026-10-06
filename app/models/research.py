@@ -141,6 +141,14 @@ class ScheduledRun(BaseModel):
     monitor_run_id: str | None = None
     warnings: list[str] = Field(default_factory=list)
 
+
+class UserSettings(BaseModel):
+    default_etf: str = "510300"
+    default_mode: Literal["demo", "live"] = "demo"
+    default_question: str = "分析当前资金信号，并结合已入库公开资料说明证据和局限"
+    report_page_size: int = Field(default=10, ge=5, le=50)
+    updated_at: datetime | None = None
+
 class ResearchReport(BaseModel):
     title: str = "ETF研究报告"
     question: str

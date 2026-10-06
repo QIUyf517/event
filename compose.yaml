@@ -1,0 +1,18 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      ETF_DATABASE_PATH: /app/data/etf_research.sqlite3
+      ETF_SETTINGS_DATABASE_PATH: /app/data/app_settings.sqlite3
+    volumes:
+      - etf-data:/app/data
+      - etf-output:/app/output
+    restart: unless-stopped
+
+volumes:
+  etf-data:
+  etf-output:
