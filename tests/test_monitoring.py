@@ -7,7 +7,7 @@ from app.analysis.indicators import price_return, volume_ratio
 from app.analysis.signals import calculate_signal
 from app.data.repositories.sqlite import SQLiteRepository
 from app.data.seed import seed_demo
-from app.models.research import MarketBar, MonitorRun, ShareRecord
+from app.models.research import MarketBar, MonitorRun, ShareRecord, SyncResult, UserSettings
 from app.monitoring import service
 
 
@@ -97,68 +97,6 @@ def test_stale_market_is_labeled_after_holiday(tmp_path):
     repo.close()
 
 
-def _scheduled_monitor_result(day, complete=True, run_id="monitor-1"):
-    rows = []
-    for code in ("510300", "510050", "510500"):
-        rows.append({"etf_code": code, "status": "success", "sync_status": "success",
-            "share_sync_status": "success", "latest_market_date": day.isoformat(),
-            "latest_share_date": (day if complete else day.replace(day=day.day - 1)).isoformat()})
-    return MonitorRun(run_id=run_id, as_of_date=day, started_at=datetime(2026, 10, 8, 18, 30),
-        finished_at=datetime(2026, 10, 8, 18, 31), status="success", etf_results=rows)
-
-
-def test_scheduled_primary_is_idempotent_and_complete_retry_skips(tmp_path, monkeypatch):
-    repo = SQLiteRepository(tmp_path / "scheduled.sqlite3")
-    day = date(2026, 10, 8)
-    calls = []
-    monkeypatch.setattr(service, "run_monitor_once",
-        lambda *args, **kwargs: calls.append("run") or _scheduled_monitor_result(day))
-
-    first = service.run_scheduled_monitor(repo, day, "primary")
-    repeated = service.run_scheduled_monitor(repo, day, "primary")
-    retry = service.run_scheduled_monitor(repo, day, "retry")
-
-    assert first.status == repeated.status == "success"
-    assert retry.status == "skipped"
-    assert calls == ["run"]
-    assert len(repo.recent_scheduled_runs()) == 2
-    repo.close()
-
-
-def test_scheduled_retry_runs_once_when_primary_data_is_incomplete(tmp_path, monkeypatch):
-    repo = SQLiteRepository(tmp_path / "scheduled.sqlite3")
-    day = date(2026, 10, 8)
-    results = iter([
-        _scheduled_monitor_result(day, complete=False, run_id="monitor-primary"),
-        _scheduled_monitor_result(day, complete=True, run_id="monitor-retry"),
-    ])
-    monkeypatch.setattr(service, "run_monitor_once", lambda *args, **kwargs: next(results))
-
-    primary = service.run_scheduled_monitor(repo, day, "primary")
-    retry = service.run_scheduled_monitor(repo, day, "retry")
-    repeated = service.run_scheduled_monitor(repo, day, "retry")
-
-    assert primary.status == "partial"
-    assert retry.status == repeated.status == "success"
-    assert retry.monitor_run_id == "monitor-retry"
-    repo.close()
-
-
-def test_scheduled_monitor_skips_known_holiday_without_network(tmp_path, monkeypatch):
-    repo = SQLiteRepository(tmp_path / "scheduled.sqlite3")
-    monkeypatch.setattr(service, "run_monitor_once",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("holiday must not run")))
-    result = service.run_scheduled_monitor(repo, date(2026, 10, 7), "primary")
-    assert result.status == "skipped"
-    assert "休市日" in result.reason
-    repo.close()
-
-
-def test_morning_start_when_available_targets_previous_known_trading_day():
-    assert service.scheduled_target_date(datetime(2026, 10, 8, 8, 30)) == date(2026, 9, 30)
-    assert service.scheduled_target_date(datetime(2026, 10, 8, 18, 30)) == date(2026, 10, 8)
-
-
 def test_page_tables_and_detail_keys_are_readable_chinese(tmp_path, monkeypatch):
     from streamlit.testing.v1 import AppTest
     import app.config as config
@@ -197,3 +135,47 @@ def test_page_tables_and_detail_keys_are_readable_chinese(tmp_path, monkeypatch)
     for element in page.json:
         payload = json.loads(element.value) if isinstance(element.value, str) else element.value
         assert not [key for key in keys(payload) if re.search(r"[A-Za-z_]", str(key))]
+
+
+def test_live_page_collects_only_after_manual_click(tmp_path, monkeypatch):
+    from streamlit.testing.v1 import AppTest
+    import app.config as config
+    import app.data.sync as sync_module
+
+    monkeypatch.setattr(config, "DATABASE_PATH", tmp_path / "etf_research.sqlite3")
+    monkeypatch.setattr(config, "DATA_MODE", "live")
+    monkeypatch.setattr(config, "SETTINGS_DATABASE_PATH", tmp_path / "app_settings.sqlite3")
+    settings = SQLiteRepository(config.SETTINGS_DATABASE_PATH)
+    settings.save_user_settings(UserSettings(default_mode="live"))
+    settings.close()
+
+    calls = []
+    def fake_sync(repo, code, start, end):
+        calls.append(("single", code))
+        return SyncResult(sync_id="manual-test", etf_code=code, start_date=start,
+            end_date=end, market_status="success", share_status="partial")
+
+    def fake_monitor(repo, day, mode, sync_live):
+        calls.append(("all", mode, sync_live))
+        rows = [{"etf_code": code, "status": "missing_data", "sync_status": "failed",
+            "share_sync_status": "unavailable", "history_rows": 0,
+            "latest_signal": None, "latest_market_date": None,
+            "latest_share_date": None} for code in config.ALLOWED_ETFS]
+        return MonitorRun(run_id="manual-test", as_of_date=day,
+            started_at=datetime.now(), finished_at=datetime.now(), status="partial",
+            etf_results=rows)
+
+    monkeypatch.setattr(sync_module, "sync_market_data", fake_sync)
+    monkeypatch.setattr(service, "run_monitor_once", fake_monitor)
+    page = AppTest.from_file(str(Path(__file__).resolve().parents[1] /
+        "app" / "frontend" / "streamlit_app.py")).run()
+    assert not page.exception, [item.message for item in page.exception]
+    assert calls == []
+
+    next(button for button in page.button if button.label == "手动收集所选基金数据").click().run()
+    assert not page.exception, [item.message for item in page.exception]
+    assert calls == [("single", "510300")]
+
+    next(button for button in page.button if button.label == "手动收集并检查三只基金").click().run()
+    assert not page.exception, [item.message for item in page.exception]
+    assert calls == [("single", "510300"), ("all", "live", True)]

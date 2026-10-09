@@ -2,8 +2,10 @@
 
 import re
 from dataclasses import dataclass
+from datetime import date, timedelta
 
 from app.models.research import DocumentChunk, SignalResult
+from app.monitoring.service import known_market_closed
 
 
 SUPPORTED_EXAMPLES = "当前资金信号、最新价格或60日价格位置、最新份额或5个可用披露日份额变化、成交额热度、已入库公告"
@@ -14,6 +16,13 @@ SIGNAL_NAMES = {
     "cautious": "偏谨慎",
     "insufficient_data": "数据不足",
 }
+
+
+def latest_expected_market_day(as_of_date: date) -> date:
+    day = as_of_date
+    while known_market_closed(day):
+        day -= timedelta(days=1)
+    return day
 
 
 @dataclass(frozen=True)
@@ -87,14 +96,23 @@ def answer_question(plan: QuestionPlan, signal: SignalResult, documents: list[Do
     latest = signal.latest_values
     market_date = signal.source_dates.get("market")
     share_date = signal.source_dates.get("shares")
+    expected_day = latest_expected_market_day(signal.as_of_date) if signal.data_mode == "live" else None
+    stale_market = expected_day is not None and (market_date is None or market_date < expected_day)
+    stale_shares = expected_day is not None and (share_date is None or share_date < expected_day)
     parts = []
     incomplete = False
     if "signal" in plan.focus:
         if signal.signal == "insufficient_data":
             parts.append(f"截至{signal.as_of_date}，数据不足，无法形成完整资金信号；缺少：{', '.join(signal.missing_fields)}。")
             incomplete = True
+        elif stale_market or stale_shares:
+            parts.append(
+                f"现有数据形成的综合信号为{SIGNAL_NAMES[signal.signal]}；行情截至{market_date}，"
+                f"份额截至{share_date}。尚未取得查询日所需的完整数据，不能确认当前信号。"
+            )
+            incomplete = True
         else:
-            parts.append(f"当前综合信号为{SIGNAL_NAMES[signal.signal]}。行情截至{market_date}，份额截至{share_date}。")
+            parts.append(f"截至{market_date}的综合信号为{SIGNAL_NAMES[signal.signal]}。行情截至{market_date}，份额截至{share_date}。")
     if "price" in plan.focus:
         if latest.get("close") is None or values.get("price_position_60d") is None:
             parts.append("价格数据不足，无法回答价格问题。")
@@ -131,5 +149,11 @@ def answer_question(plan: QuestionPlan, signal: SignalResult, documents: list[Do
         incomplete = True
     if plan.scope_note:
         parts.append(plan.scope_note)
+        incomplete = True
+    if "signal" not in plan.focus and (
+        (stale_market and ("price" in plan.focus or "turnover" in plan.focus))
+        or (stale_shares and "shares" in plan.focus)
+    ):
+        parts.append("相关数据尚未更新至查询日，仅能说明已披露的历史记录。")
         incomplete = True
     return ("partial" if incomplete else "answered"), " ".join(parts)

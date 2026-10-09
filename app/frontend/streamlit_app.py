@@ -282,7 +282,7 @@ with st.sidebar:
         format_func=lambda mode: "演示数据" if mode == "demo" else "真实数据",
         horizontal=True,
     )
-    st.caption("真实模式读取本地数据；点击同步后才会联网更新日线与份额。")
+    st.caption("打开或刷新网页只读取本地数据；点击手动收集按钮后才会联网更新日线与份额。")
 
 mode_class = "demo" if active_mode == "demo" else ""
 st.markdown(
@@ -309,7 +309,7 @@ with st.sidebar:
     st.markdown('<div class="sidebar-label">当前使用的数据</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="sidebar-value">本地{MODE_LABELS[active_mode]}文件</div>', unsafe_allow_html=True)
     st.caption("真实数据与演示数据严格隔离。同步失败时不会自动混入演示数据。")
-    sync_clicked = active_mode == "live" and st.button("更新所选基金的真实数据", width="stretch")
+    sync_clicked = active_mode == "live" and st.button("手动收集所选基金数据", width="stretch")
     with st.expander("个人偏好"):
         preferred_etf = st.selectbox("默认研究标的", list(ALLOWED_ETFS),
             index=list(ALLOWED_ETFS).index(user_settings.default_etf),
@@ -348,8 +348,8 @@ with right:
 if sync_clicked:
     with st.status(f"正在同步{etf_code}的公开行情与份额数据……", expanded=True) as status:
         sync_result = sync_market_data(repo, etf_code, date.today().replace(month=1, day=1), date.today())
-        st.write(f"行情：{SYNC_STATUS_LABELS.get(sync_result.market_status, sync_result.market_status)}，新增 {sync_result.market_rows} 条记录。")
-        st.write(f"基金份额：{SHARE_STATUS_LABELS.get(sync_result.share_status, '状态未知')}，新增 {sync_result.share_rows} 条记录。")
+        st.write(f"行情：{SYNC_STATUS_LABELS.get(sync_result.market_status, sync_result.market_status)}，本次读取并处理 {sync_result.market_rows} 条记录。")
+        st.write(f"基金份额：{SHARE_STATUS_LABELS.get(sync_result.share_status, '状态未知')}，本次读取并处理 {sync_result.share_rows} 条记录。")
         for warning in sync_result.warnings:
             st.warning(warning)
         with st.expander("查看本次更新的详细记录"):
@@ -548,20 +548,8 @@ if archive:
 else:
     st.caption("当前数据模式还没有研究报告存档。")
 
-section_heading("三只基金的数据检查", "真实模式支持18:30自动更新和20:30条件重试，也可以随时手动检查")
-if active_mode == "live":
-    scheduled_runs = repo.recent_scheduled_runs(1)
-    if scheduled_runs:
-        scheduled = scheduled_runs[0]
-        slot_label = "18:30主任务" if scheduled.slot == "primary" else "20:30重试"
-        st.caption(
-            f"最近自动任务：{scheduled.finished_at} · {slot_label} · "
-            f"{RUN_STATUS_LABELS.get(scheduled.status, '已跳过') if scheduled.status != 'skipped' else '已跳过'}。"
-            f"{scheduled.reason}"
-        )
-    else:
-        st.caption("真实数据库中还没有自动任务运行记录；安装Windows定时任务后，执行结果会显示在这里。")
-monitor_label = "手动更新并检查三只基金" if active_mode == "live" else "检查三只基金的演示数据（不联网）"
+section_heading("三只基金的数据检查", "只在点击按钮后收集真实数据；打开网页仅显示已保存的结果")
+monitor_label = "手动收集并检查三只基金" if active_mode == "live" else "检查三只基金的演示数据（不联网）"
 if st.button(monitor_label, width="stretch"):
     with st.spinner("正在检查三只ETF的数据与信号……"):
         monitor_result = run_monitor_once(repo, date.today(), active_mode, sync_live=active_mode == "live")
@@ -607,7 +595,7 @@ st.caption("价格位置和成交额分位越接近100%，表示在各自历史�
 for warning in comparison["warnings"]:
     st.warning(warning)
 
-section_heading("历史观察信号", "仅展示已由手动检查生成的历史结果；每行按该日以前可用数据计算")
+section_heading("历史观察信号", "仅展示已保存的历史结果；每行按该日以前可用数据计算")
 history = repo.signal_history(etf_code, date.today() - timedelta(days=180), date.today(), ALGORITHM_VERSION)
 if history:
     st.dataframe(pd.DataFrame([{"观察日期": readable_date(item.as_of_date),
@@ -635,17 +623,9 @@ if alerts:
 else:
     st.caption("当前没有本地提醒。")
 
-section_heading("运行日志", "查看自动任务、监控检查和数据同步是否真正完成")
-log_tabs = st.tabs(["自动任务", "监控检查", "数据同步"])
+section_heading("运行记录", "查看手动检查和数据收集是否真正完成")
+log_tabs = st.tabs(["手动检查", "数据收集"])
 with log_tabs[0]:
-    scheduled_log = repo.recent_scheduled_runs(20)
-    if scheduled_log:
-        st.dataframe(pd.DataFrame([{"日期": item.as_of_date, "时段": item.slot,
-            "状态": item.status, "开始时间": item.started_at, "完成时间": item.finished_at,
-            "说明": item.reason} for item in scheduled_log]), width="stretch", hide_index=True)
-    else:
-        st.caption("暂无自动任务记录。")
-with log_tabs[1]:
     monitor_log = repo.recent_monitor_runs(20)
     if monitor_log:
         st.dataframe(pd.DataFrame([{"查询日期": item.as_of_date, "状态": item.status,
@@ -654,7 +634,7 @@ with log_tabs[1]:
             width="stretch", hide_index=True)
     else:
         st.caption("暂无监控检查记录。")
-with log_tabs[2]:
+with log_tabs[1]:
     sync_log = repo.recent_sync_runs(30)
     if sync_log:
         st.dataframe(pd.DataFrame([{"基金": item.etf_code, "开始日期": item.start_date,
@@ -664,5 +644,13 @@ with log_tabs[2]:
             width="stretch", hide_index=True)
     else:
         st.caption("暂无数据同步记录。")
+
+if active_mode == "live":
+    scheduled_log = repo.recent_scheduled_runs(20)
+    if scheduled_log:
+        with st.expander("停用前的自动任务历史"):
+            st.dataframe(pd.DataFrame([{"日期": item.as_of_date, "时段": item.slot,
+                "状态": item.status, "开始时间": item.started_at, "完成时间": item.finished_at,
+                "说明": item.reason} for item in scheduled_log]), width="stretch", hide_index=True)
 
 repo.close()

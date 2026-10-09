@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from pypdf import PdfReader
 
 from app.api.main import create_app
+from app.reporting.pdf_export import render_report_pdf
 
 
 def client_for(tmp_path):
@@ -85,3 +86,19 @@ def test_missing_write_key_fails_closed(tmp_path):
     with TestClient(create_app(resolver, write_key="", settings_path=tmp_path / "settings.sqlite3")) as client:
         response = client.post("/api/v1/monitor/run", json={"mode": "demo"})
         assert response.status_code == 503
+
+
+def test_legacy_archived_pdf_keeps_citation_and_marks_missing_answer():
+    legacy = {
+        "title": "ETF研究报告", "etf": {"etf_code": "510500", "name": "中证500ETF"},
+        "data_mode": "live", "as_of_date": "2026-10-05", "data_cutoff_date": "2026-09-30",
+        "calculated_results": {"signal": "cautious", "algorithm_version": "v0.1",
+            "source_dates": {"market": "2026-09-30", "shares": "2026-09-30"}, "indicators": {}},
+        "evidence": [{"citation": "D1", "title": "上交所关于510500的公告",
+            "content": "东莞证券为510500提供主做市服务。", "published_at": "2026-06-26",
+            "source_url": "https://www.sse.com.cn/example"}],
+    }
+    text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(render_report_pdf(legacy))).pages)
+    assert "历史报告未保存直接回答" in text
+    assert "上交所关于510500的公告" in text
+    assert "https://www.sse.com.cn/example" in text

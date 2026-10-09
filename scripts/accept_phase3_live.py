@@ -26,7 +26,7 @@ def check_manual_button(snapshot: Path) -> str:
     page = AppTest.from_file(str(Path(__file__).resolve().parents[1] /
         "app" / "frontend" / "streamlit_app.py")).run()
     assert not page.exception, [item.message for item in page.exception]
-    next(button for button in page.button if button.label == "手动更新并检查三只基金").click().run()
+    next(button for button in page.button if button.label == "手动收集并检查三只基金").click().run()
     assert not page.exception, [item.message for item in page.exception]
     assert any("上次手动检查" in item.value for item in [*page.markdown, *page.caption])
     return "passed"

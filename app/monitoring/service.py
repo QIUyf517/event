@@ -1,7 +1,7 @@
 """历史信号、数据异常、跨 ETF 对比及一次性监控。"""
 
 import math
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from statistics import median
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -11,7 +11,7 @@ from app.config import ALGORITHM_VERSION, ALLOWED_ETFS
 from app.data.fetchers import SSE_2026_CLOSED
 from app.data.repositories.sqlite import SQLiteRepository
 from app.data.sync import sync_market_data
-from app.models.research import MonitorAlert, MonitorRun, ScheduledRun, SignalResult
+from app.models.research import MonitorAlert, MonitorRun, SignalResult
 
 SIGNAL_LABELS = {"positive": "偏积极", "moderately_positive": "温和积极", "neutral": "中性",
                  "cautious": "偏谨慎", "insufficient_data": "数据不足"}
@@ -23,17 +23,6 @@ def shanghai_now() -> datetime:
 
 def known_market_closed(day: date) -> bool:
     return day.weekday() >= 5 or (day.year == 2026 and any(start <= day <= end for start, end in SSE_2026_CLOSED))
-
-
-def scheduled_target_date(now: datetime | None = None) -> date:
-    """18:30前由Windows补跑时，处理最近一个已知交易日。"""
-    current = now or shanghai_now()
-    target = current.date()
-    if current.time().replace(tzinfo=None) < time(18, 30):
-        target -= timedelta(days=1)
-        while known_market_closed(target):
-            target -= timedelta(days=1)
-    return target
 
 
 def backfill_signal_history(repo: SQLiteRepository, etf_code: str, as_of_date: date,
@@ -162,60 +151,3 @@ def run_monitor_once(repo: SQLiteRepository, as_of_date: date, data_mode: str = 
         finished_at=shanghai_now(), status=status, etf_results=etf_results, warnings=warnings)
     repo.save_monitor_run(result)
     return result
-
-
-def monitor_needs_retry(result: MonitorRun, as_of_date: date) -> bool:
-    """判断日终数据是否完整；历史披露缺口不会导致无限重试。"""
-    if result.status == "failed" or len(result.etf_results) != len(ALLOWED_ETFS):
-        return True
-    expected = as_of_date.isoformat()
-    for item in result.etf_results:
-        if item.get("status") != "success" or item.get("sync_status") == "failed":
-            return True
-        if item.get("share_sync_status") in {"failed", "unavailable"}:
-            return True
-        if item.get("latest_market_date") != expected or item.get("latest_share_date") != expected:
-            return True
-    return False
-
-
-def run_scheduled_monitor(repo: SQLiteRepository, as_of_date: date, slot: str,
-                          force: bool = False) -> ScheduledRun:
-    """执行一个幂等的18:30主任务或20:30条件重试。"""
-    if slot not in {"primary", "retry"}:
-        raise ValueError("定时任务时段只能是 primary 或 retry")
-    existing = repo.scheduled_run(as_of_date, slot)
-    if existing and not force:
-        return existing
-    started = shanghai_now()
-    run_key = f"{as_of_date.isoformat()}:{slot}"
-    if known_market_closed(as_of_date):
-        scheduled = ScheduledRun(run_key=run_key, as_of_date=as_of_date, slot=slot,
-            started_at=started, finished_at=shanghai_now(), status="skipped",
-            reason="周末或已登记的上交所休市日，未联网。")
-        repo.save_scheduled_run(scheduled)
-        return scheduled
-    if slot == "retry" and not force:
-        primary = repo.scheduled_run(as_of_date, "primary")
-        if primary and primary.status == "success":
-            scheduled = ScheduledRun(run_key=run_key, as_of_date=as_of_date, slot=slot,
-                started_at=started, finished_at=shanghai_now(), status="skipped",
-                reason="18:30主任务数据完整，无需重试。")
-            repo.save_scheduled_run(scheduled)
-            return scheduled
-    try:
-        monitor = run_monitor_once(repo, as_of_date, "live", sync_live=True)
-        needs_retry = monitor_needs_retry(monitor, as_of_date)
-        status = "failed" if monitor.status == "failed" else "partial" if needs_retry else "success"
-        reason = ("当日行情或份额仍不完整，已记录并等待人工检查。" if needs_retry and slot == "retry"
-                  else "当日行情或份额不完整，20:30任务将重试。" if needs_retry
-                  else "三只ETF的当日行情和份额均已更新。")
-        scheduled = ScheduledRun(run_key=run_key, as_of_date=as_of_date, slot=slot,
-            started_at=started, finished_at=shanghai_now(), status=status, reason=reason,
-            monitor_run_id=monitor.run_id, warnings=monitor.warnings)
-    except Exception as exc:
-        scheduled = ScheduledRun(run_key=run_key, as_of_date=as_of_date, slot=slot,
-            started_at=started, finished_at=shanghai_now(), status="failed",
-            reason=f"定时监控异常：{exc}", warnings=[str(exc)])
-    repo.save_scheduled_run(scheduled)
-    return scheduled

@@ -1,8 +1,10 @@
-# 第三阶段日终自动更新
+# 第三阶段日终自动更新（历史设计，已停用）
+
+自 2026-10-09 起，本机已移除 `ETFResearchMonitor-Primary` 和 `ETFResearchMonitor-Retry` 两个 Windows 计划任务。当前使用方式是在网页中点击“手动收集所选基金数据”或“手动收集并检查三只基金”。以下内容仅保留原方案和历史记录的解释，不代表系统仍会自动收集。
 
 ## 目标
 
-自动更新用于保持真实数据库的日线、ETF份额、历史信号和异常记录连续。它只生成研究观察信号，不执行交易，也不把份额变化解释为真实资金净流入。
+原自动更新方案用于保持真实数据库的日线、ETF份额、历史信号和异常记录连续。它只生成研究观察信号，不执行交易，也不把份额变化解释为真实资金净流入。
 
 ## 执行流程
 
@@ -24,7 +26,7 @@
 
 ## 可核对证据
 
-- 页面显示最近一次自动任务的完成时间、时段、状态和原因。
+- 停用前，页面曾显示最近一次自动任务的完成时间、时段、状态和原因；现在仅保留历史记录。
 - `scheduled_runs` 保存主任务与重试决策。
 - `monitor_runs` 保存三只ETF的同步结果、数据截止日期和触发指标。
 - `sync_runs` 保存每只ETF的行情及份额抓取状态。
@@ -35,8 +37,7 @@
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/test_live_sync.py tests/test_monitoring.py -q
 .\.venv\Scripts\python.exe -m scripts.accept_phase3_live --as-of 2026-10-07
-powershell -ExecutionPolicy Bypass -File .\scripts\install_windows_tasks.ps1
-Get-ScheduledTask -TaskName "ETFResearchMonitor-*" | Get-ScheduledTaskInfo
+# 当前不再安装 Windows 计划任务；在网页上点击手动收集按钮。
 ```
 
 验收时必须分别报告流程状态和数据日期。任务运行成功只证明程序执行完成；如果最新行情仍停留在更早日期，不能声称已经取得查询日数据。

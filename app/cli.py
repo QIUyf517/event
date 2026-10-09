@@ -11,7 +11,7 @@ from app.data.seed import seed_demo, seed_profile
 from app.data.sync import sync_market_data
 from app.doctor import run_checks
 from app.evaluation.service import DEFAULT_OUTPUT, evaluate_questions, save_evaluation
-from app.monitoring.service import compare_etfs, run_monitor_once, run_scheduled_monitor, scheduled_target_date
+from app.monitoring.service import compare_etfs, run_monitor_once
 from app.rag.ingest import ingest_local, ingest_official_url
 from app.tools.research_tools import ResearchTools
 
@@ -38,10 +38,6 @@ def build_parser() -> argparse.ArgumentParser:
     monitor = sub.add_parser("monitor-once", help="手动执行一次三只ETF监控")
     monitor.add_argument("--as-of", type=parse_date, default=date.today())
     monitor.add_argument("--no-sync", action="store_true", help="仅使用本地数据，不联网同步")
-    scheduled = sub.add_parser("scheduled-monitor", help="供系统定时任务执行日终监控")
-    scheduled.add_argument("--slot", choices=["primary", "retry"], required=True)
-    scheduled.add_argument("--as-of", type=parse_date, help="默认按当前时间判断正常运行日或补跑目标日")
-    scheduled.add_argument("--force", action="store_true", help="忽略当日同一时段的已有执行记录")
     comparison = sub.add_parser("compare", help="按同一查询日期对比ETF")
     comparison.add_argument("--etfs", nargs="+", default=list(ALLOWED_ETFS))
     comparison.add_argument("--as-of", type=parse_date, default=date.today())
@@ -76,8 +72,6 @@ def main():
         raise SystemExit("sync-market 必须使用 --mode live")
     if args.command == "monitor-once" and args.mode != "live" and not args.no_sync:
         raise SystemExit("演示模式监控须使用 --no-sync")
-    if args.command == "scheduled-monitor" and args.mode != "live":
-        raise SystemExit("定时监控必须使用 --mode live")
     if hasattr(args, "etf") and args.etf not in ALLOWED_ETFS:
         raise SystemExit(f"第一阶段仅支持: {', '.join(ALLOWED_ETFS)}")
     if args.command == "compare" and any(code not in ALLOWED_ETFS for code in args.etfs):
@@ -105,9 +99,6 @@ def main():
             result = SingleResearchAgent(ResearchTools(repo, args.mode)).run(args.question, args.etf, args.as_of).final_report
         elif args.command == "monitor-once":
             result = run_monitor_once(repo, args.as_of, args.mode, sync_live=not args.no_sync).model_dump(mode="json")
-        elif args.command == "scheduled-monitor":
-            target_date = args.as_of or scheduled_target_date()
-            result = run_scheduled_monitor(repo, target_date, args.slot, force=args.force).model_dump(mode="json")
         elif args.command == "compare":
             result = compare_etfs(repo, args.etfs, args.as_of, args.mode)
         elif args.command == "signal-history":

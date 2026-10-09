@@ -2,10 +2,11 @@ from datetime import date
 
 import pytest
 
-from app.agents.question_router import plan_question
+from app.agents.question_router import QuestionPlan, answer_question, plan_question
 from app.agents.single_agent import SingleResearchAgent
 from app.data.repositories.sqlite import SQLiteRepository
 from app.data.seed import seed_demo
+from app.models.research import SignalResult
 from app.tools.research_tools import ResearchTools
 
 
@@ -50,3 +51,30 @@ def test_unsupported_window_and_other_etf_are_not_answered_as_five_day_change(tm
     assert other["answer_status"] == "unsupported"
     assert "其他ETF" in other["direct_answer"]
     repo.close()
+
+
+def test_live_signal_explains_stale_data_after_market_reopens():
+    signal = SignalResult(
+        etf_code="510300", as_of_date=date(2026, 10, 7), indicators={},
+        signal="cautious", evidence_strength="weak", algorithm_version="v0.2",
+        data_mode="live", source_dates={"market": date(2026, 9, 30), "shares": date(2026, 9, 30)},
+    )
+    plan = QuestionPlan(("signal",))
+    holiday_status, holiday_answer = answer_question(plan, signal, [])
+    assert holiday_status == "answered"
+    assert "截至2026-09-30的综合信号" in holiday_answer
+
+    trading_status, trading_answer = answer_question(
+        plan, signal.model_copy(update={"as_of_date": date(2026, 10, 8)}), []
+    )
+    assert trading_status == "partial"
+    assert "不能确认当前信号" in trading_answer
+
+    price_signal = signal.model_copy(update={
+        "as_of_date": date(2026, 10, 8),
+        "indicators": {"price_position_60d": 0.2},
+        "latest_values": {"close": 4.2},
+    })
+    price_status, price_answer = answer_question(QuestionPlan(("price",)), price_signal, [])
+    assert price_status == "partial"
+    assert "仅能说明已披露的历史记录" in price_answer

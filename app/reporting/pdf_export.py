@@ -36,6 +36,7 @@ def _font() -> str:
     candidates = [Path(PDF_FONT_PATH)] if PDF_FONT_PATH else []
     candidates.extend([
         Path("C:/Windows/Fonts/msyh.ttc"),
+        Path("/usr/share/fonts/truetype/wqy/wqy-microhei.ttc"),
         Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
         Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
     ])
@@ -112,8 +113,9 @@ def render_report_pdf(report: dict, task_id: str | None = None) -> bytes:
         ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
         ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
     ]))
+    direct_answer = report.get("direct_answer") or "这份历史报告未保存直接回答；以下仅展示当时归档的指标和资料片段。"
     story.extend([meta_table, Spacer(1, 6 * mm), Paragraph("针对问题的回答", subtitle),
-                  Paragraph(_safe(report.get("direct_answer", "暂无回答")), answer)])
+                  Paragraph(_safe(direct_answer), answer)])
 
     story.append(Paragraph("五项观察指标", subtitle))
     indicator_rows = [[Paragraph("指标", small), Paragraph("结果", small), Paragraph("对信号的作用", small)]]
@@ -142,7 +144,8 @@ def render_report_pdf(report: dict, task_id: str | None = None) -> bytes:
         for item in result["trigger_details"]:
             story.append(Paragraph(f"· {_safe(INDICATOR_LABELS.get(item.get('indicator'), item.get('indicator')))}：{_safe(item.get('reason'))}", body))
 
-    excerpts = report.get("source_excerpts") or []
+    # v0.1 archives stored cited document snippets in evidence, before source_excerpts existed.
+    excerpts = report.get("source_excerpts") or report.get("evidence") or []
     story.append(Paragraph("公开资料与引用", subtitle))
     if excerpts:
         for item in excerpts:
