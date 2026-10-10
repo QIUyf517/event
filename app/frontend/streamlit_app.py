@@ -282,12 +282,130 @@ def section_heading(title, note):
     )
 
 
+def render_operations_page(repo, active_mode, default_etf):
+    st.markdown('<div class="section-kicker">维护已保存的数据</div>', unsafe_allow_html=True)
+    history_etf = st.selectbox(
+        "查看历史信号的基金",
+        list(ALLOWED_ETFS),
+        index=list(ALLOWED_ETFS).index(default_etf),
+        format_func=lambda code: f"{code} · {ALLOWED_ETFS[code]}",
+        key="operations_etf",
+    )
+
+    section_heading("三只基金的数据检查", "只在点击按钮后收集真实数据；打开网页仅显示已保存的结果")
+    monitor_label = "手动收集并检查三只基金" if active_mode == "live" else "检查三只基金的演示数据（不联网）"
+    if st.button(monitor_label, width="stretch"):
+        with st.spinner("正在检查三只ETF的数据与信号……"):
+            monitor_result = run_monitor_once(repo, date.today(), active_mode, sync_live=active_mode == "live")
+            st.session_state[f"monitor_result_{active_mode}"] = monitor_result.model_dump(mode="json")
+    monitor_result = st.session_state.get(f"monitor_result_{active_mode}")
+    if monitor_result:
+        run_label = RUN_STATUS_LABELS.get(monitor_result["status"], "状态未知")
+        st.caption(f"上次手动检查：{monitor_result['finished_at']} · 整体情况：{run_label}。完成只表示检查流程结束，请以行情日期判断数据是否更新。")
+        monitor_rows = []
+        for item in monitor_result["etf_results"]:
+            monitor_rows.append({
+                "基金": f"{item['etf_code']} · {ALLOWED_ETFS.get(item['etf_code'], '名称未知')}",
+                "检查结果": RUN_STATUS_LABELS.get(item["status"], "状态未知"),
+                "行情更新": SYNC_STATUS_LABELS.get(item["sync_status"], "状态未知"),
+                "份额更新": SHARE_STATUS_LABELS.get(item.get("share_sync_status"), "未请求联网更新"),
+                "历史信号记录数": item.get("history_rows", 0),
+                "最新观察信号": SIGNAL_LABELS.get(item.get("latest_signal"), "暂无结果"),
+                "最新行情日期": item.get("latest_market_date") or "暂无数据",
+                "最新份额日期": item.get("latest_share_date") or "暂无数据",
+            })
+        st.dataframe(pd.DataFrame(monitor_rows), width="stretch", hide_index=True)
+        for item in monitor_result["etf_results"]:
+            if item.get("error"):
+                st.error(f"{item['etf_code']} 检查失败：{item['error']}")
+        for warning in monitor_result["warnings"]:
+            st.warning(warning)
+
+    comparison = compare_etfs(repo, list(ALLOWED_ETFS), date.today(), active_mode)
+    section_heading("三只基金对比", "同一张表查看各基金；行情或份额日期不同，请勿直接比较信号强弱")
+    comparison_rows = []
+    for item in comparison["rows"]:
+        comparison_rows.append({"基金代码": item["etf_code"], "基金名称": item["name"],
+            "观察信号": SIGNAL_LABELS.get(item["signal"], "暂无结果"),
+            "行情截止日期": readable_date(item["source_dates"].get("market")),
+            "份额截止日期": readable_date(item["source_dates"].get("shares")),
+            "近60日价格位置": indicator_value("price_position_60d", item["indicators"].get("price_position_60d")),
+            "近5次披露份额变化": indicator_value("share_change_5d", item["indicators"].get("share_change_5d")),
+            "成交额历史分位": indicator_value("turnover_percentile", item["indicators"].get("turnover_percentile")),
+            "近5日价格变化": indicator_value("price_return_5d", item["indicators"].get("price_return_5d")),
+            "近5日成交量对比前5日": indicator_value("volume_ratio_5d", item["indicators"].get("volume_ratio_5d"))})
+    st.dataframe(pd.DataFrame(comparison_rows), width="stretch", hide_index=True)
+    st.caption("价格位置和成交额分位越接近100%，表示在各自历史样本中越靠高位；成交量比高于1倍，表示最近5日比前5日更活跃。份额变化仅是申赎行为的间接线索。")
+    for warning in comparison["warnings"]:
+        st.warning(warning)
+
+    section_heading("历史观察信号", "仅展示所选基金已保存的历史结果；每行按该日以前可用数据计算")
+    history = repo.signal_history(history_etf, date.today() - timedelta(days=180), date.today(), ALGORITHM_VERSION)
+    if history:
+        st.dataframe(pd.DataFrame([{"观察日期": readable_date(item.as_of_date),
+            "观察信号": SIGNAL_LABELS.get(item.signal, "暂无结果"),
+            "支持偏积极的指标": sum(row["contribution"] > 0 for row in item.trigger_details),
+            "支持偏谨慎的指标": sum(row["contribution"] < 0 for row in item.trigger_details),
+            "行情截止日期": readable_date(item.source_dates.get("market")),
+            "份额截止日期": readable_date(item.source_dates.get("shares")),
+            "缺少的指标": readable_missing(item.missing_fields)} for item in history[-60:]]),
+            width="stretch", hide_index=True)
+    else:
+        st.info("暂无当前算法版本的历史信号。点击上方手动检查后生成。")
+
+    section_heading("本地提醒", "异常与信号变化保存在当前模式的数据库中")
+    alerts = repo.recent_monitor_alerts(20)
+    if alerts:
+        for item in alerts:
+            message = f"{item.etf_code} · {item.as_of_date} · {item.title}：{readable_text(item.message)}"
+            if item.severity == "error":
+                st.error(message)
+            elif item.severity == "warning":
+                st.warning(message)
+            else:
+                st.info(message)
+    else:
+        st.caption("当前没有本地提醒。")
+
+    section_heading("运行记录", "查看手动检查和数据收集是否真正完成")
+    log_tabs = st.tabs(["手动检查", "数据收集"])
+    with log_tabs[0]:
+        monitor_log = repo.recent_monitor_runs(20)
+        if monitor_log:
+            st.dataframe(pd.DataFrame([{"查询日期": item.as_of_date, "状态": item.status,
+                "开始时间": item.started_at, "完成时间": item.finished_at,
+                "基金数量": len(item.etf_results), "提示数量": len(item.warnings)} for item in monitor_log]),
+                width="stretch", hide_index=True)
+        else:
+            st.caption("暂无监控检查记录。")
+    with log_tabs[1]:
+        sync_log = repo.recent_sync_runs(30)
+        if sync_log:
+            st.dataframe(pd.DataFrame([{"基金": item.etf_code, "开始日期": item.start_date,
+                "结束日期": item.end_date, "行情状态": item.market_status,
+                "份额状态": item.share_status, "行情记录": item.market_rows,
+                "份额记录": item.share_rows, "提示数量": len(item.warnings)} for item in sync_log]),
+                width="stretch", hide_index=True)
+        else:
+            st.caption("暂无数据同步记录。")
+
+    if active_mode == "live":
+        scheduled_log = repo.recent_scheduled_runs(20)
+        if scheduled_log:
+            with st.expander("停用前的自动任务历史"):
+                st.dataframe(pd.DataFrame([{"日期": item.as_of_date, "时段": item.slot,
+                    "状态": item.status, "开始时间": item.started_at, "完成时间": item.finished_at,
+                    "说明": item.reason} for item in scheduled_log]), width="stretch", hide_index=True)
+
+
 settings_repo = SQLiteRepository(SETTINGS_DATABASE_PATH)
 user_settings = settings_repo.user_settings()
 settings_repo.close()
 
 with st.sidebar:
-    st.markdown("## 研究设置")
+    st.markdown("## 页面导航")
+    active_page = st.radio("页面", ("研究工作台", "数据与运行记录"))
+    st.markdown("## 数据设置")
     active_mode = st.radio(
         "数据模式",
         ("demo", "live"),
@@ -298,14 +416,22 @@ with st.sidebar:
     st.caption("打开或刷新网页只读取本地数据；点击手动收集按钮后才会联网更新日线与份额。")
 
 mode_class = "demo" if active_mode == "demo" else ""
+if active_page == "研究工作台":
+    page_kicker = "公开数据 · 可复核的观察结果"
+    page_title = "A股指数基金<br>研究工作台"
+    page_copy = "用可复核的行情指标观察资金信号，以官方公开资料校验解释。结论、证据与未知信息分开呈现。"
+else:
+    page_kicker = "本地数据 · 更新状态与审计记录"
+    page_title = "数据与<br>运行记录"
+    page_copy = "检查三只基金的数据日期和历史信号，集中查看本地提醒、手动检查与数据收集记录。"
 st.markdown(
     f"""
     <header class="masthead">
-        <div class="masthead-kicker">公开数据 · 可复核的观察结果</div>
+        <div class="masthead-kicker">{page_kicker}</div>
         <div class="masthead-row">
-            <h1>A股指数基金<br>研究工作台</h1>
+            <h1>{page_title}</h1>
             <div>
-                <p class="masthead-copy">用可复核的行情指标观察资金信号，以官方公开资料校验解释。结论、证据与未知信息分开呈现。</p>
+                <p class="masthead-copy">{page_copy}</p>
                 <span class="mode-chip {mode_class}">{MODE_LABELS[active_mode]}</span>
             </div>
         </div>
@@ -322,7 +448,7 @@ with st.sidebar:
     st.markdown('<div class="sidebar-label">当前使用的数据</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="sidebar-value">本地{MODE_LABELS[active_mode]}文件</div>', unsafe_allow_html=True)
     st.caption("真实数据与演示数据严格隔离。同步失败时不会自动混入演示数据。")
-    sync_clicked = active_mode == "live" and st.button("手动收集所选基金数据", width="stretch")
+    sync_clicked = active_page == "研究工作台" and active_mode == "live" and st.button("手动收集所选基金数据", width="stretch")
     with st.expander("个人偏好"):
         preferred_etf = st.selectbox("默认研究标的", list(ALLOWED_ETFS),
             index=list(ALLOWED_ETFS).index(user_settings.default_etf),
@@ -338,6 +464,11 @@ with st.sidebar:
                 "report_page_size": preferred_page_size}))
             settings_repo.close()
             st.success("个人偏好已保存，下次打开页面时生效。")
+
+if active_page == "数据与运行记录":
+    render_operations_page(repo, active_mode, user_settings.default_etf)
+    repo.close()
+    st.stop()
 
 st.markdown('<div class="section-kicker">生成新的研究简报</div>', unsafe_allow_html=True)
 left, right = st.columns([1, 2.25], gap="large")
@@ -572,110 +703,5 @@ if archive:
             st.caption(f"报告编号：{selected_report_id} · 保存时间：{archived['created_at']}")
 else:
     st.caption("当前数据模式还没有研究报告存档。")
-
-section_heading("三只基金的数据检查", "只在点击按钮后收集真实数据；打开网页仅显示已保存的结果")
-monitor_label = "手动收集并检查三只基金" if active_mode == "live" else "检查三只基金的演示数据（不联网）"
-if st.button(monitor_label, width="stretch"):
-    with st.spinner("正在检查三只ETF的数据与信号……"):
-        monitor_result = run_monitor_once(repo, date.today(), active_mode, sync_live=active_mode == "live")
-        st.session_state[f"monitor_result_{active_mode}"] = monitor_result.model_dump(mode="json")
-monitor_result = st.session_state.get(f"monitor_result_{active_mode}")
-if monitor_result:
-    run_label = RUN_STATUS_LABELS.get(monitor_result["status"], "状态未知")
-    st.caption(f"上次手动检查：{monitor_result['finished_at']} · 整体情况：{run_label}。完成只表示检查流程结束，请以行情日期判断数据是否更新。")
-    monitor_rows = []
-    for item in monitor_result["etf_results"]:
-        monitor_rows.append({
-            "基金": f"{item['etf_code']} · {ALLOWED_ETFS.get(item['etf_code'], '名称未知')}",
-            "检查结果": RUN_STATUS_LABELS.get(item["status"], "状态未知"),
-            "行情更新": SYNC_STATUS_LABELS.get(item["sync_status"], "状态未知"),
-            "份额更新": SHARE_STATUS_LABELS.get(item.get("share_sync_status"), "未请求联网更新"),
-            "历史信号记录数": item.get("history_rows", 0),
-            "最新观察信号": SIGNAL_LABELS.get(item.get("latest_signal"), "暂无结果"),
-            "最新行情日期": item.get("latest_market_date") or "暂无数据",
-            "最新份额日期": item.get("latest_share_date") or "暂无数据",
-        })
-    st.dataframe(pd.DataFrame(monitor_rows), width="stretch", hide_index=True)
-    for item in monitor_result["etf_results"]:
-        if item.get("error"):
-            st.error(f"{item['etf_code']} 检查失败：{item['error']}")
-    for warning in monitor_result["warnings"]:
-        st.warning(warning)
-
-comparison = compare_etfs(repo, list(ALLOWED_ETFS), date.today(), active_mode)
-section_heading("三只基金对比", "同一张表查看各基金；行情或份额日期不同，请勿直接比较信号强弱")
-comparison_rows = []
-for item in comparison["rows"]:
-    comparison_rows.append({"基金代码": item["etf_code"], "基金名称": item["name"],
-        "观察信号": SIGNAL_LABELS.get(item["signal"], "暂无结果"),
-        "行情截止日期": readable_date(item["source_dates"].get("market")),
-        "份额截止日期": readable_date(item["source_dates"].get("shares")),
-        "近60日价格位置": indicator_value("price_position_60d", item["indicators"].get("price_position_60d")),
-        "近5次披露份额变化": indicator_value("share_change_5d", item["indicators"].get("share_change_5d")),
-        "成交额历史分位": indicator_value("turnover_percentile", item["indicators"].get("turnover_percentile")),
-        "近5日价格变化": indicator_value("price_return_5d", item["indicators"].get("price_return_5d")),
-        "近5日成交量对比前5日": indicator_value("volume_ratio_5d", item["indicators"].get("volume_ratio_5d"))})
-st.dataframe(pd.DataFrame(comparison_rows), width="stretch", hide_index=True)
-st.caption("价格位置和成交额分位越接近100%，表示在各自历史样本中越靠高位；成交量比高于1倍，表示最近5日比前5日更活跃。份额变化仅是申赎行为的间接线索。")
-for warning in comparison["warnings"]:
-    st.warning(warning)
-
-section_heading("历史观察信号", "仅展示已保存的历史结果；每行按该日以前可用数据计算")
-history = repo.signal_history(etf_code, date.today() - timedelta(days=180), date.today(), ALGORITHM_VERSION)
-if history:
-    st.dataframe(pd.DataFrame([{"观察日期": readable_date(item.as_of_date),
-        "观察信号": SIGNAL_LABELS.get(item.signal, "暂无结果"),
-        "支持偏积极的指标": sum(row["contribution"] > 0 for row in item.trigger_details),
-        "支持偏谨慎的指标": sum(row["contribution"] < 0 for row in item.trigger_details),
-        "行情截止日期": readable_date(item.source_dates.get("market")),
-        "份额截止日期": readable_date(item.source_dates.get("shares")),
-        "缺少的指标": readable_missing(item.missing_fields)} for item in history[-60:]]),
-        width="stretch", hide_index=True)
-else:
-    st.info("暂无当前算法版本的历史信号。点击上方手动监控后生成。")
-
-section_heading("本地提醒", "异常与信号变化保存在当前模式的数据库中")
-alerts = repo.recent_monitor_alerts(20)
-if alerts:
-    for item in alerts:
-        message = f"{item.etf_code} · {item.as_of_date} · {item.title}：{readable_text(item.message)}"
-        if item.severity == "error":
-            st.error(message)
-        elif item.severity == "warning":
-            st.warning(message)
-        else:
-            st.info(message)
-else:
-    st.caption("当前没有本地提醒。")
-
-section_heading("运行记录", "查看手动检查和数据收集是否真正完成")
-log_tabs = st.tabs(["手动检查", "数据收集"])
-with log_tabs[0]:
-    monitor_log = repo.recent_monitor_runs(20)
-    if monitor_log:
-        st.dataframe(pd.DataFrame([{"查询日期": item.as_of_date, "状态": item.status,
-            "开始时间": item.started_at, "完成时间": item.finished_at,
-            "基金数量": len(item.etf_results), "提示数量": len(item.warnings)} for item in monitor_log]),
-            width="stretch", hide_index=True)
-    else:
-        st.caption("暂无监控检查记录。")
-with log_tabs[1]:
-    sync_log = repo.recent_sync_runs(30)
-    if sync_log:
-        st.dataframe(pd.DataFrame([{"基金": item.etf_code, "开始日期": item.start_date,
-            "结束日期": item.end_date, "行情状态": item.market_status,
-            "份额状态": item.share_status, "行情记录": item.market_rows,
-            "份额记录": item.share_rows, "提示数量": len(item.warnings)} for item in sync_log]),
-            width="stretch", hide_index=True)
-    else:
-        st.caption("暂无数据同步记录。")
-
-if active_mode == "live":
-    scheduled_log = repo.recent_scheduled_runs(20)
-    if scheduled_log:
-        with st.expander("停用前的自动任务历史"):
-            st.dataframe(pd.DataFrame([{"日期": item.as_of_date, "时段": item.slot,
-                "状态": item.status, "开始时间": item.started_at, "完成时间": item.finished_at,
-                "说明": item.reason} for item in scheduled_log]), width="stretch", hide_index=True)
 
 repo.close()

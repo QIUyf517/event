@@ -109,17 +109,24 @@ def test_page_tables_and_detail_keys_are_readable_chinese(tmp_path, monkeypatch)
     repo.close()
     page = AppTest.from_file(str(Path(__file__).resolve().parents[1] /
         "app" / "frontend" / "streamlit_app.py")).run()
+    assert not any(button.label == "检查三只基金的演示数据（不联网）" for button in page.button)
     next(button for button in page.button if button.label == "生成研究简报").click().run()
+    assert not page.exception, [item.message for item in page.exception]
+    research_frames = [item.value for item in page.dataframe]
+    indicators = next(frame for frame in research_frames
+        if {"指标", "结果", "对信号的作用", "如何理解"} <= set(frame.columns))
+    assert indicators.iloc[0]["结果"].endswith("%")
+
+    next(item for item in page.radio if item.label == "页面").set_value("数据与运行记录").run()
+    assert not any(button.label == "生成研究简报" for button in page.button)
     next(button for button in page.button if button.label == "检查三只基金的演示数据（不联网）").click().run()
     assert not page.exception, [item.message for item in page.exception]
     frames = [item.value for item in page.dataframe]
     def frame_with(*required):
         return next(frame for frame in frames if set(required) <= set(frame.columns))
-    indicators = frame_with("指标", "结果", "对信号的作用", "如何理解")
     monitor = frame_with("基金", "检查结果", "行情更新", "最新观察信号")
     comparison = frame_with("基金代码", "基金名称", "观察信号", "近60日价格位置")
     frame_with("观察日期", "支持偏积极的指标", "缺少的指标")
-    assert indicators.iloc[0]["结果"].endswith("%")
     assert monitor.iloc[0]["检查结果"] == "已完成"
     assert comparison.iloc[0]["近60日价格位置"].endswith("%")
 
@@ -132,6 +139,7 @@ def test_page_tables_and_detail_keys_are_readable_chinese(tmp_path, monkeypatch)
             for item in value:
                 yield from keys(item)
 
+    next(item for item in page.radio if item.label == "页面").set_value("研究工作台").run()
     for element in page.json:
         payload = json.loads(element.value) if isinstance(element.value, str) else element.value
         assert not [key for key in keys(payload) if re.search(r"[A-Za-z_]", str(key))]
@@ -176,6 +184,7 @@ def test_live_page_collects_only_after_manual_click(tmp_path, monkeypatch):
     assert not page.exception, [item.message for item in page.exception]
     assert calls == [("single", "510300")]
 
+    next(item for item in page.radio if item.label == "页面").set_value("数据与运行记录").run()
     next(button for button in page.button if button.label == "手动收集并检查三只基金").click().run()
     assert not page.exception, [item.message for item in page.exception]
     assert calls == [("single", "510300"), ("all", "live", True)]
