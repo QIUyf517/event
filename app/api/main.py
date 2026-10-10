@@ -14,19 +14,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
+from app.agents.llm_research import ModelDrivenResearchAgent
 from app.agents.single_agent import SingleResearchAgent
 from app.config import (ALGORITHM_VERSION, ALLOWED_ETFS, API_CORS_ORIGINS, API_WRITE_KEY,
                         APP_VERSION, SETTINGS_DATABASE_PATH, database_path_for_mode)
 from app.data.repositories.sqlite import SQLiteRepository
 from app.data.seed import seed_demo, seed_profile
+from app.data.sync import sync_market_data
 from app.evaluation.service import DEFAULT_OUTPUT
 from app.models.research import UserSettings
-from app.monitoring.service import run_monitor_once
+from app.monitoring.service import compare_etfs, run_monitor_once
 from app.reporting.pdf_export import render_report_pdf, report_pdf_filename
 from app.tools.research_tools import ResearchTools
 
 
 Mode = Literal["demo", "live"]
+ResearchMethod = Literal["rules", "ai"]
 
 
 class ResearchRequest(BaseModel):
@@ -34,12 +37,18 @@ class ResearchRequest(BaseModel):
     etf_code: str = "510300"
     as_of_date: date = Field(default_factory=date.today)
     mode: Mode = "demo"
+    method: ResearchMethod = "rules"
 
 
 class MonitorRequest(BaseModel):
     as_of_date: date = Field(default_factory=date.today)
     mode: Mode = "demo"
     sync_live: bool = False
+
+
+class SyncRequest(BaseModel):
+    start_date: date = Field(default_factory=lambda: date.today().replace(month=1, day=1))
+    end_date: date = Field(default_factory=date.today)
 
 
 def create_app(database_resolver: Callable[[str], Path] = database_path_for_mode,
@@ -102,6 +111,32 @@ def create_app(database_resolver: Callable[[str], Path] = database_path_for_mode
         finally:
             repo.close()
 
+    @api.get("/api/v1/market/{etf_code}", tags=["research"])
+    def market_history(etf_code: str, mode: Mode = "demo",
+                       end: date = Query(default_factory=date.today),
+                       limit: int = Query(90, ge=5, le=365)):
+        if etf_code not in ALLOWED_ETFS:
+            raise HTTPException(status_code=404, detail="不支持的ETF代码")
+        repo = open_repo(mode)
+        try:
+            if mode == "demo" and repo.profile(etf_code) is None:
+                seed_demo(repo, end)
+            rows = repo.market(etf_code, end, limit=limit)
+            return {"etf_code": etf_code, "mode": mode, "count": len(rows),
+                    "items": [item.model_dump(mode="json") for item in rows]}
+        finally:
+            repo.close()
+
+    @api.get("/api/v1/comparison", tags=["research"])
+    def comparison(mode: Mode = "demo", as_of_date: date = Query(default_factory=date.today)):
+        repo = open_repo(mode)
+        try:
+            if mode == "demo" and any(repo.profile(code) is None for code in ALLOWED_ETFS):
+                seed_demo(repo, as_of_date)
+            return compare_etfs(repo, list(ALLOWED_ETFS), as_of_date, mode)
+        finally:
+            repo.close()
+
     @api.post("/api/v1/research", tags=["research"], dependencies=[Depends(require_write_access)])
     def research(request: ResearchRequest):
         if request.etf_code not in ALLOWED_ETFS:
@@ -112,11 +147,31 @@ def create_app(database_resolver: Callable[[str], Path] = database_path_for_mode
                 seed_demo(repo, request.as_of_date)
             if request.mode == "live":
                 seed_profile(repo, request.etf_code)
-            state = SingleResearchAgent(ResearchTools(repo, request.mode)).run(
-                request.question, request.etf_code, request.as_of_date)
+            tools = ResearchTools(repo, request.mode)
+            agent = (ModelDrivenResearchAgent(tools) if request.method == "ai"
+                     else SingleResearchAgent(tools))
+            state = agent.run(request.question, request.etf_code, request.as_of_date)
             return {"task_id": state.task_id, "report": state.final_report}
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        finally:
+            repo.close()
+
+    @api.post("/api/v1/sync/{etf_code}", tags=["monitoring"],
+              dependencies=[Depends(require_write_access)])
+    def sync_etf(etf_code: str, request: SyncRequest):
+        if etf_code not in ALLOWED_ETFS:
+            raise HTTPException(status_code=422, detail="不支持的ETF代码")
+        if request.start_date > request.end_date:
+            raise HTTPException(status_code=422, detail="开始日期不能晚于结束日期")
+        repo = open_repo("live")
+        try:
+            if repo.profile(etf_code) is None:
+                seed_profile(repo, etf_code)
+            return sync_market_data(repo, etf_code, request.start_date,
+                                    request.end_date).model_dump(mode="json")
         finally:
             repo.close()
 

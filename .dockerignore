@@ -8,3 +8,6 @@ data/*.sqlite3
 data/*.db
 *.log
 output
+frontend/node_modules
+frontend/dist
+frontend/.vite

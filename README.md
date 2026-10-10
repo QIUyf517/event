@@ -1,20 +1,28 @@
 # A股ETF公开资料与资金信号研究助手
 
-支持 `510300`、`510050`、`510500` 三只ETF：行情和份额数据入库、五项确定性观察指标、公开资料检索、带证据的结构化研究报告，以及 Streamlit 页面。网页现在可显式选择规则研究或大模型驱动的 AI 协作研究；AI 路径使用有边界的工具调用和程序核验。第二阶段的原四角色规则流程仍可使用。第三阶段提供网页手动收集、数据检查、历史信号、ETF对比和本地提醒。第四阶段已加入 FastAPI、用户偏好、报告存档与 PDF、监控日志、固定评测和容器化配置。演示模式使用合成数据；真实模式只使用采集到的公开数据，两种模式的数据库相互隔离。
+支持 `510300`、`510050`、`510500` 三只ETF：行情和份额数据入库、五项确定性观察指标、公开资料检索、带证据的结构化研究报告，以及 React 研究台。网页可显式选择规则研究或大模型驱动的 AI 协作研究；AI 路径使用有边界的工具调用和程序核验。第二阶段的原四角色规则流程仍可使用。第三阶段提供网页手动收集、数据检查、历史信号、ETF对比和本地提醒。第四阶段已加入 FastAPI、用户偏好、报告存档与 PDF、监控日志、固定评测和容器化配置。演示模式使用合成数据；真实模式只使用采集到的公开数据，两种模式的数据库相互隔离。原 Streamlit 页面继续保留，便于对照和故障排查。
 
 ## 快速开始
 
 ```powershell
-# 在项目根目录使用 Python 3.11；已有 .venv 时跳过创建环境
+# 首次准备：在项目根目录使用 Python 3.11；已有 .venv 时跳过创建环境
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.lock
 .\.venv\Scripts\python.exe -m app.cli doctor
 .\.venv\Scripts\python.exe -m app.cli --mode demo seed-demo
-.\.venv\Scripts\python.exe -m streamlit run app/frontend/streamlit_app.py
-.\.venv\Scripts\python.exe -m pytest -q
+
+# 终端一：启动 FastAPI
+.\.venv\Scripts\python.exe -m uvicorn app.api.main:app --host 127.0.0.1 --port 8000
+
+# 终端二：首次运行先安装前端依赖，然后启动 React
+cd frontend
+npm install
+npm run dev
 ```
 
-打开终端显示的本机地址即可进入网页。默认读取根目录 `.env`，并使用 `ETF_DATA_MODE=demo`；没有 `.env` 时也可运行演示模式。演示与真实模式分别写入 `*.demo.sqlite3` 和 `*.live.sqlite3`，不会混用。真实行情仅在显式同步时联网，URL资料导入也会联网；真实来源失败时记录失败，不回退到合成数据。
+浏览器打开 `http://127.0.0.1:5173/`。研究台分为“研究工作台”和“数据与记录”两个页面。默认读取根目录 `.env`，并使用 `ETF_DATA_MODE=demo`；没有 `.env` 时也可读取演示数据。需要生成报告、手动收集或运行检查时，在页面填写 `.env` 中的 `ETF_API_WRITE_KEY`。密钥只保存在当前浏览器标签页的 `sessionStorage`，不会写入前端源码。
+
+演示与真实模式分别写入 `*.demo.sqlite3` 和 `*.live.sqlite3`，不会混用。真实行情仅在用户点击收集或检查按钮时联网，URL资料导入也会联网；真实来源失败时记录失败，不回退到合成数据。原 Streamlit 页面仍可用 `.\.venv\Scripts\python.exe -m streamlit run app/frontend/streamlit_app.py` 启动。
 
 网页侧栏可以直接在“演示数据”和“真实数据”之间切换，不需要修改 `.env` 或重启程序。`.env` 中的 `ETF_DATA_MODE` 只决定页面首次打开时的默认选项。切换到真实数据后，可点击“手动收集所选基金数据”按需更新一只基金，或点击“手动收集并检查三只基金”更新全部三只基金并生成检查结果；打开或刷新网页不会联网收集。公开公告仍需通过导入命令加入资料库。收集的不是盘中实时行情推送。
 
@@ -36,9 +44,9 @@ python -m app.cli evaluate --as-of 2026-09-30
 docker compose up --build
 ```
 
-API 提供 ETF 列表、历史信号、研究生成、报告分页存档、单份报告 JSON/PDF、监控运行记录、停用前的定时任务历史、同步记录、提醒、个人偏好和最近一次评测结果。Streamlit 页面也可保存默认 ETF、默认问题、默认模式和存档分页大小，并查看或下载历史报告及监控日志。
+API 提供 ETF 列表、行情序列、ETF横向观察、历史信号、研究生成、报告分页存档、单份报告 JSON/PDF、监控运行记录、同步记录、提醒、个人偏好和最近一次评测结果。React 页面通过 API 读取这些数据，并提供规则研究、AI协作研究、手动收集和检查入口。Streamlit 页面仍可用于保存默认选项和辅助排查。
 
-固定评测检查数据模式、查询日期、算法版本、使用边界、证据地址、未来数据泄漏和不支持问题的降级行为。它不能证明研究结论在语义上完全正确，也不能替代真实数据人工抽查。当前部署配置为单实例作品集演示，使用 API Key 做写接口保护；多用户登录、角色权限、PostgreSQL、React 前端和实际云部署仍属于后续工作。第四阶段验收证据见[第四阶段验收记录](docs/phase4_acceptance_2026-10-07.md)和[实际运行验收补充记录](docs/phase4_runtime_acceptance_2026-10-08.md)。
+固定评测检查数据模式、查询日期、算法版本、使用边界、证据地址、未来数据泄漏和不支持问题的降级行为。它不能证明研究结论在语义上完全正确，也不能替代真实数据人工抽查。当前部署配置为单实例作品集演示，使用 API Key 做写接口保护；多用户登录、角色权限、PostgreSQL和实际云部署仍属于后续工作。第四阶段验收证据见[第四阶段验收记录](docs/phase4_acceptance_2026-10-07.md)和[实际运行验收补充记录](docs/phase4_runtime_acceptance_2026-10-08.md)。
 
 ## 第三阶段：网页手动收集与数据检查
 
@@ -147,6 +155,7 @@ app/
   rag/          文档解析、切分、关键词检索
   reporting/    PDF报告生成
   tools/        Agent 工具接口
+frontend/       React + TypeScript 研究台
 tests/          单元和集成测试
 evals/          固定评估问题
 ```

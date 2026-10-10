@@ -1,10 +1,12 @@
 from datetime import date
 from io import BytesIO
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 from pypdf import PdfReader
 
 from app.api.main import create_app
+from app.models.research import SyncResult
 from app.reporting.pdf_export import render_report_pdf
 
 
@@ -59,6 +61,49 @@ def test_research_archive_and_pdf_round_trip(tmp_path):
         reader = PdfReader(BytesIO(pdf.content))
         assert len(reader.pages) >= 1
         assert "ETF" in (reader.metadata.title or "")
+
+
+def test_research_api_can_select_ai_method_without_calling_model(tmp_path, monkeypatch):
+    import app.api.main as api_module
+
+    def fake_run(self, question, etf_code, as_of_date):
+        return SimpleNamespace(task_id="ai-task", final_report={
+            "question": question, "etf": {"etf_code": etf_code},
+            "as_of_date": as_of_date.isoformat(), "research_method": "ai_collaboration"})
+
+    monkeypatch.setattr(api_module.ModelDrivenResearchAgent, "run", fake_run)
+    with client_for(tmp_path) as client:
+        response = client.post("/api/v1/research", json={
+            "question": "查看当前资金信号", "etf_code": "510300",
+            "as_of_date": "2026-09-30", "mode": "demo", "method": "ai",
+        }, headers={"X-API-Key": "test-secret"})
+
+    assert response.status_code == 200
+    assert response.json()["report"]["research_method"] == "ai_collaboration"
+
+
+def test_market_comparison_and_manual_sync_endpoints(tmp_path, monkeypatch):
+    import app.api.main as api_module
+
+    def fake_sync(repo, code, start, end):
+        return SyncResult(sync_id="sync-test", etf_code=code, start_date=start,
+                          end_date=end, market_status="success", share_status="partial")
+
+    monkeypatch.setattr(api_module, "sync_market_data", fake_sync)
+    with client_for(tmp_path) as client:
+        market = client.get("/api/v1/market/510300", params={
+            "mode": "demo", "end": "2026-09-30", "limit": 30})
+        comparison = client.get("/api/v1/comparison", params={
+            "mode": "demo", "as_of_date": "2026-09-30"})
+        synced = client.post("/api/v1/sync/510300", json={
+            "start_date": "2026-01-01", "end_date": "2026-09-30",
+        }, headers={"X-API-Key": "test-secret"})
+
+    assert market.status_code == 200
+    assert market.json()["count"] == 30
+    assert len(comparison.json()["rows"]) == 3
+    assert synced.status_code == 200
+    assert synced.json()["sync_id"] == "sync-test"
 
 
 def test_settings_and_monitor_logs_are_persisted(tmp_path):
