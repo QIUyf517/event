@@ -117,9 +117,13 @@ AI 路径按“模型规划 → 模型数据分析与资料检索 → 程序核�
 .\.venv\Scripts\python.exe -m scripts.import_curated_sources --apply
 ```
 
-`evals/semantic_cases.json` 提供三个手写检查场景；以下命令只用临时演示库比较规则、单模型和多 Agent 路径，`--ai` 会产生模型费用，结果保存到 `output/semantic_comparison.json`。自动检查覆盖预期状态、信号、日期、资料命中、引用编号和因果限制；仍需人工逐条核对回答与原文。演示数据评测不能证明真实数据的新鲜度或线上质量。
+`evals/semantic_cases.json` 提供12个手写检查场景，覆盖数字事实、资料引用、综合研究和能力边界。以下命令只用临时演示库比较规则、单模型和多 Agent 路径；`--ai` 会产生模型费用，不加时只验证规则流程和评分器。完整记录保存到 `output/semantic_comparison.json`，便于阅读的汇总与人工检查表保存到 `output/semantic_comparison_summary.md`。自动检查覆盖预期状态、信号、行情与份额日期、资料命中、引用编号、必要表述、禁止结论和因果限制；仍需人工逐条核对回答与原文。演示数据评测不能证明真实数据的新鲜度或线上质量。
 
 ```powershell
+# 免费预检：不调用模型
+.\.venv\Scripts\python.exe -m scripts.evaluate_research_methods
+
+# 完整对照：会调用已配置的真实模型并产生费用
 .\.venv\Scripts\python.exe -m scripts.evaluate_research_methods --ai
 ```
 

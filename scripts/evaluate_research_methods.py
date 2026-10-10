@@ -23,17 +23,104 @@ def grade(case, answer, evidence):
     text = answer.get("direct_answer", "")
     citations = answer.get("citations", [])
     known = {row["citation"] for row in evidence}
-    return {
+    required_groups = case.get("required_term_groups", [])
+    forbidden_terms = case.get("forbidden_terms", [])
+    checks = {
         "status": answer.get("answer_status") == case["expected_status"],
         "signal": answer.get("signal") == case["expected_signal"],
         "market_date": source_dates.get("market") == case["expected_market_date"],
+        "share_date": source_dates.get("shares") == case.get("expected_share_date"),
         "document_presence": bool(evidence) == case["expected_document"],
         "citation_coverage": not case["expected_document"] or bool(citations),
         "citations_known": all(item in known for item in citations),
+        "required_terms": all(any(term in text for term in alternatives)
+                              for alternatives in required_groups),
+        "forbidden_terms": not any(term in text for term in forbidden_terms),
         "cause_caveat": (not case["requires_cause_caveat"] or
                          (any(x in text for x in ("不能", "无法", "尚不能")) and
                           any(x in text for x in ("原因", "成因")))),
     }
+    checks["all_checks_passed"] = all(checks.values())
+    return checks
+
+
+def aggregate_results(case_results):
+    methods = sorted({row["method"] for case in case_results for row in case["methods"]})
+    summary = []
+    for method in methods:
+        rows = [row for case in case_results for row in case["methods"] if row["method"] == method]
+        successful = [row for row in rows if "checks" in row]
+        check_values = [value for row in successful for name, value in row["checks"].items()
+                        if name != "all_checks_passed"]
+        category_rows = {}
+        for case_result in case_results:
+            row = next((item for item in case_result["methods"] if item["method"] == method), None)
+            if row and "checks" in row:
+                category_rows.setdefault(case_result["case"]["category"], []).append(
+                    row["checks"]["all_checks_passed"])
+        summary.append({
+            "method": method,
+            "completed_cases": len(successful),
+            "error_cases": len(rows) - len(successful),
+            "fully_passed_cases": sum(row["checks"]["all_checks_passed"] for row in successful),
+            "case_pass_rate": (sum(row["checks"]["all_checks_passed"] for row in successful) /
+                               len(rows) if rows else 0),
+            "check_pass_rate": sum(check_values) / len(check_values) if check_values else 0,
+            "average_latency_ms": (round(sum(row["latency_ms"] for row in successful) /
+                                           len(successful), 1) if successful else None),
+            "total_tokens": sum(row.get("token_usage") or 0 for row in successful),
+            "category_pass_rates": {category: sum(values) / len(values)
+                                    for category, values in category_rows.items()},
+        })
+    return summary
+
+
+def render_markdown_summary(result):
+    method_names = {"rules": "规则流程", "single_model": "单模型", "multi_agent": "多 Agent"}
+    lines = [
+        "# 研究方法对照评测摘要",
+        "",
+        f"- 固定数据：合成演示快照，查询日 {result['as_of_date']}",
+        f"- 题目数量：{len(result['cases'])}",
+        f"- 模型调用：{'已启用' if result['model_calls_enabled'] else '未启用'}",
+        "- 自动检查只能验证结构、日期、引用和预设文字边界，不能替代人工语义判断。",
+        "",
+        "| 方法 | 完成题数 | 完全通过 | 题目通过率 | 检查项通过率 | 平均耗时 | Token合计 |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for row in result["summary"]:
+        latency = f"{row['average_latency_ms']:.1f} ms" if row["average_latency_ms"] is not None else "暂无"
+        lines.append(
+            f"| {method_names.get(row['method'], row['method'])} | {row['completed_cases']} | "
+            f"{row['fully_passed_cases']} | {row['case_pass_rate']:.1%} | "
+            f"{row['check_pass_rate']:.1%} | {latency} | {row['total_tokens']} |"
+        )
+    lines.extend(["", "## 失败项目", ""])
+    failures = 0
+    for case_result in result["cases"]:
+        for row in case_result["methods"]:
+            if "error" in row:
+                lines.append(f"- `{case_result['case']['id']}` · {method_names.get(row['method'], row['method'])}：运行错误 `{row['error']}`")
+                failures += 1
+                continue
+            failed = [name for name, passed in row["checks"].items()
+                      if name != "all_checks_passed" and not passed]
+            if failed:
+                lines.append(f"- `{case_result['case']['id']}` · {method_names.get(row['method'], row['method'])}：{', '.join(failed)}")
+                failures += 1
+    if not failures:
+        lines.append("- 自动检查未发现失败项。")
+    lines.extend([
+        "", "## 人工复核", "",
+        "对每份多 Agent 回答逐项检查：",
+        "",
+        "- [ ] 数字、单位和日期与程序结果一致。",
+        "- [ ] 引用编号存在，引用内容与问题相关。",
+        "- [ ] 没有把份额变化直接写成资金净流入。",
+        "- [ ] 没有用背景资料臆测价格或份额变化原因。",
+        "- [ ] 无法回答时明确说明未知范围。",
+    ])
+    return "\n".join(lines) + "\n"
 
 
 def model_once(client, question, baseline):
@@ -102,20 +189,26 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ai", action="store_true", help="调用真实模型；会产生API费用")
     parser.add_argument("--output", type=Path, default=PROJECT_ROOT / "output" / "semantic_comparison.json")
+    parser.add_argument("--summary-output", type=Path,
+                        default=PROJECT_ROOT / "output" / "semantic_comparison_summary.md")
     args = parser.parse_args()
     cases = json.loads(CASES.read_text(encoding="utf-8"))
     with tempfile.TemporaryDirectory(prefix="etf-semantic-eval-") as directory:
         repo = SQLiteRepository(Path(directory) / "demo.sqlite3")
         try:
             seed_demo(repo, date(2026, 9, 30))
+            case_results = [run_case(case, repo, args.ai) for case in cases]
             result = {"data_mode": "synthetic_demo", "as_of_date": "2026-09-30",
-                      "model_calls_enabled": args.ai,
-                      "cases": [run_case(case, repo, args.ai) for case in cases]}
+                      "model_calls_enabled": args.ai, "cases": case_results,
+                      "summary": aggregate_results(case_results)}
         finally:
             repo.close()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(json.dumps({"output": str(args.output), "case_count": len(cases),
+    args.summary_output.parent.mkdir(parents=True, exist_ok=True)
+    args.summary_output.write_text(render_markdown_summary(result), encoding="utf-8")
+    print(json.dumps({"output": str(args.output), "summary_output": str(args.summary_output),
+                      "case_count": len(cases),
                       "methods": [x["method"] for x in result["cases"][0]["methods"]]},
                      ensure_ascii=False))
 

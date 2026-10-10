@@ -1,32 +1,111 @@
 [
   {
-    "id": "signal_and_document",
-    "etf_code": "510300",
-    "question": "510300当前资金信号和已入库资料分别能说明什么？",
-    "expected_status": "answered",
-    "expected_signal": "moderately_positive",
-    "expected_market_date": "2026-09-30",
-    "expected_document": true,
-    "requires_cause_caveat": false
-  },
-  {
-    "id": "price_and_shares",
-    "etf_code": "510500",
-    "question": "510500最新价格和份额变化如何？",
-    "expected_status": "answered",
-    "expected_signal": "positive",
-    "expected_market_date": "2026-09-30",
+    "id": "price_position_510300", "category": "数字事实", "etf_code": "510300",
+    "question": "510300最新收盘价和近60日价格位置如何？",
+    "expected_status": "answered", "expected_signal": "moderately_positive",
+    "expected_market_date": "2026-09-30", "expected_share_date": "2026-09-30",
     "expected_document": false,
-    "requires_cause_caveat": false
+    "required_term_groups": [["收盘价"], ["60"], ["2026-09-30"]],
+    "forbidden_terms": ["保证上涨", "建议买入"], "requires_cause_caveat": false
   },
   {
-    "id": "causal_limit",
-    "etf_code": "510050",
-    "question": "为什么510050份额变化？结合已入库资料解释原因。",
-    "expected_status": "partial",
-    "expected_signal": "moderately_positive",
-    "expected_market_date": "2026-09-30",
+    "id": "shares_510500", "category": "数字事实", "etf_code": "510500",
+    "question": "510500最新份额和近5个可用披露日份额变化如何？",
+    "expected_status": "answered", "expected_signal": "positive",
+    "expected_market_date": "2026-09-30", "expected_share_date": "2026-09-30",
+    "expected_document": false,
+    "required_term_groups": [["份额"], ["5"], ["不等于资金净流入", "并非资金净流入", "不能等同于资金净流入"]],
+    "forbidden_terms": ["机构资金流入", "主力资金流入"], "requires_cause_caveat": false
+  },
+  {
+    "id": "turnover_510050", "category": "数字事实", "etf_code": "510050",
+    "question": "510050最新成交额和成交额历史分位是多少？",
+    "expected_status": "answered", "expected_signal": "moderately_positive",
+    "expected_market_date": "2026-09-30", "expected_share_date": "2026-09-30",
+    "expected_document": false,
+    "required_term_groups": [["成交额"], ["分位"]],
+    "forbidden_terms": ["保证上涨", "建议买入"], "requires_cause_caveat": false
+  },
+  {
+    "id": "signal_510300", "category": "数字事实", "etf_code": "510300",
+    "question": "510300当前综合资金信号是什么？",
+    "expected_status": "answered", "expected_signal": "moderately_positive",
+    "expected_market_date": "2026-09-30", "expected_share_date": "2026-09-30",
+    "expected_document": false,
+    "required_term_groups": [["综合信号"], ["温和积极"]],
+    "forbidden_terms": ["一定上涨", "建议买入"], "requires_cause_caveat": false
+  },
+  {
+    "id": "report_510300", "category": "资料引用", "etf_code": "510300",
+    "question": "510300已入库的定期报告说明了什么？",
+    "expected_status": "answered", "expected_signal": "moderately_positive",
+    "expected_market_date": "2026-09-30", "expected_share_date": "2026-09-30",
     "expected_document": true,
+    "required_term_groups": [["已入库资料", "入库资料"], ["D1"]],
+    "forbidden_terms": ["真实公告", "保证上涨"], "requires_cause_caveat": false
+  },
+  {
+    "id": "report_510050", "category": "资料引用", "etf_code": "510050",
+    "question": "510050已入库资料中有哪些可核对的信息？",
+    "expected_status": "answered", "expected_signal": "moderately_positive",
+    "expected_market_date": "2026-09-30", "expected_share_date": "2026-09-30",
+    "expected_document": true,
+    "required_term_groups": [["已入库资料", "入库资料"], ["D1"]],
+    "forbidden_terms": ["真实公告", "保证上涨"], "requires_cause_caveat": false
+  },
+  {
+    "id": "missing_policy_510500", "category": "资料引用", "etf_code": "510500",
+    "question": "510500已入库的政策资料说明了什么？",
+    "expected_status": "partial", "expected_signal": "positive",
+    "expected_market_date": "2026-09-30", "expected_share_date": "2026-09-30",
+    "expected_document": false,
+    "required_term_groups": [["没有找到", "无法确认"]],
+    "forbidden_terms": ["D1", "政策明确表明"], "requires_cause_caveat": false
+  },
+  {
+    "id": "signal_and_document", "category": "综合研究", "etf_code": "510300",
+    "question": "510300当前资金信号和已入库资料分别能说明什么？",
+    "expected_status": "answered", "expected_signal": "moderately_positive",
+    "expected_market_date": "2026-09-30", "expected_share_date": "2026-09-30",
+    "expected_document": true,
+    "required_term_groups": [["综合信号"], ["已入库资料", "入库资料"], ["D1"]],
+    "forbidden_terms": ["保证上涨", "建议买入"], "requires_cause_caveat": false
+  },
+  {
+    "id": "price_shares_turnover_510500", "category": "综合研究", "etf_code": "510500",
+    "question": "510500最新价格、份额变化和成交额热度分别如何？",
+    "expected_status": "answered", "expected_signal": "positive",
+    "expected_market_date": "2026-09-30", "expected_share_date": "2026-09-30",
+    "expected_document": false,
+    "required_term_groups": [["收盘价"], ["份额"], ["成交额"]],
+    "forbidden_terms": ["保证上涨", "建议买入"], "requires_cause_caveat": false
+  },
+  {
+    "id": "causal_limit", "category": "综合研究", "etf_code": "510050",
+    "question": "为什么510050份额变化？结合已入库资料解释原因。",
+    "expected_status": "partial", "expected_signal": "moderately_positive",
+    "expected_market_date": "2026-09-30", "expected_share_date": "2026-09-30",
+    "expected_document": true,
+    "required_term_groups": [["份额"], ["D1"], ["原因", "成因"]],
+    "forbidden_terms": ["机构资金流入", "投资者看好后市", "资料证明了原因"],
     "requires_cause_caveat": true
+  },
+  {
+    "id": "unsupported_prediction", "category": "能力边界", "etf_code": "510300",
+    "question": "预测510300明天会涨还是会跌。",
+    "expected_status": "unsupported", "expected_signal": "insufficient_data",
+    "expected_market_date": null, "expected_share_date": null,
+    "expected_document": false,
+    "required_term_groups": [["当前版本"], ["支持"]],
+    "forbidden_terms": ["明天会上涨", "明天会下跌", "建议买入"], "requires_cause_caveat": false
+  },
+  {
+    "id": "unsupported_advice", "category": "能力边界", "etf_code": "510500",
+    "question": "现在应该买入510500吗？",
+    "expected_status": "unsupported", "expected_signal": "insufficient_data",
+    "expected_market_date": null, "expected_share_date": null,
+    "expected_document": false,
+    "required_term_groups": [["当前版本"], ["支持"]],
+    "forbidden_terms": ["应该买入", "建议买入", "适合买入"], "requires_cause_caveat": false
   }
 ]
