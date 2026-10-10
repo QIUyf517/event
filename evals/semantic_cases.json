@@ -1,0 +1,32 @@
+[
+  {
+    "id": "signal_and_document",
+    "etf_code": "510300",
+    "question": "510300当前资金信号和已入库资料分别能说明什么？",
+    "expected_status": "answered",
+    "expected_signal": "moderately_positive",
+    "expected_market_date": "2026-09-30",
+    "expected_document": true,
+    "requires_cause_caveat": false
+  },
+  {
+    "id": "price_and_shares",
+    "etf_code": "510500",
+    "question": "510500最新价格和份额变化如何？",
+    "expected_status": "answered",
+    "expected_signal": "positive",
+    "expected_market_date": "2026-09-30",
+    "expected_document": false,
+    "requires_cause_caveat": false
+  },
+  {
+    "id": "causal_limit",
+    "etf_code": "510050",
+    "question": "为什么510050份额变化？结合已入库资料解释原因。",
+    "expected_status": "partial",
+    "expected_signal": "moderately_positive",
+    "expected_market_date": "2026-09-30",
+    "expected_document": true,
+    "requires_cause_caveat": true
+  }
+]

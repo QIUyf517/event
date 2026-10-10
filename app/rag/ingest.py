@@ -85,7 +85,8 @@ def ingest_local(repo: SQLiteRepository, path: str | Path, **metadata) -> Docume
     repo.upsert_document(document, chunks)
     return document
 
-def ingest_official_url(repo: SQLiteRepository, url: str, **metadata) -> Document:
+def fetch_official_document(url: str, **metadata) -> tuple[Document, list[DocumentChunk]]:
+    """Fetch and parse before any database write, so a batch can be validated first."""
     host = (urlparse(url).hostname or "").lower()
     if host not in OFFICIAL_DOMAINS:
         raise ValueError(f"非允许的官方来源域名: {host}")
@@ -97,6 +98,10 @@ def ingest_official_url(repo: SQLiteRepository, url: str, **metadata) -> Documen
         filename += ".pdf"
     elif "html" in content_type and not filename.lower().endswith((".html", ".htm")):
         filename += ".html"
-    document, chunks = build_document(response.content, filename, source_url=url, **metadata)
+    return build_document(response.content, filename, source_url=url, **metadata)
+
+
+def ingest_official_url(repo: SQLiteRepository, url: str, **metadata) -> Document:
+    document, chunks = fetch_official_document(url, **metadata)
     repo.upsert_document(document, chunks)
     return document

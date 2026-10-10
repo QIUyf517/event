@@ -1,6 +1,6 @@
 # A股ETF公开资料与资金信号研究助手
 
-支持 `510300`、`510050`、`510500` 三只ETF：行情和份额数据入库、五项确定性观察指标、公开资料关键词检索、带证据的结构化研究报告，以及 Streamlit 页面。第二阶段已增加协调、数据分析、公开资料、核验与报告四个角色。第三阶段提供网页手动收集、数据检查、历史信号、ETF对比和本地提醒。第四阶段已加入 FastAPI、用户偏好、报告存档与 PDF、监控日志、固定评测和容器化配置。演示模式使用合成数据；真实模式只使用采集到的公开数据，两种模式的数据库相互隔离。
+支持 `510300`、`510050`、`510500` 三只ETF：行情和份额数据入库、五项确定性观察指标、公开资料检索、带证据的结构化研究报告，以及 Streamlit 页面。网页现在可显式选择规则研究或大模型驱动的 AI 协作研究；AI 路径使用有边界的工具调用和程序核验。第二阶段的原四角色规则流程仍可使用。第三阶段提供网页手动收集、数据检查、历史信号、ETF对比和本地提醒。第四阶段已加入 FastAPI、用户偏好、报告存档与 PDF、监控日志、固定评测和容器化配置。演示模式使用合成数据；真实模式只使用采集到的公开数据，两种模式的数据库相互隔离。
 
 ## 快速开始
 
@@ -98,9 +98,32 @@ URL采集只接受已列入白名单的官方域名。扫描版PDF不会伪造�
 
 本地真实数据库已导入三只ETF各一份上交所公告，分别为[510300公告](https://www.sse.com.cn/disclosure/announcement/general/jjzssgg/c/c_20260202_10808073.shtml)、[510050公告](https://www.sse.com.cn/disclosure/announcement/general/jjzssgg/c/c_20260512_10818314.shtml)和[510500公告](https://www.sse.com.cn/disclosure/announcement/general/jjzssgg/c/c_20260626_10823597.shtml)。这些公告仅能证明其中明确披露的做市服务事项，不能证明近期价格或份额变化的成因。`data/*.sqlite3` 不随Git提交；换机器后须重新同步并导入资料。
 
-## LLM边界
+## 可选的 AI 协作研究
 
-LLM默认关闭。只有 `.env` 中同时配置 `LLM_*` 并设置 `LLM_ENABLED=true` 时才会调用。模型只请求带文档引用的连续原文摘录；无法在所引片段中逐字定位的内容会被删除。系统不会自动发布模型的因果推断。所有指标始终由Python计算。
+网页的“研究方式”默认是“规则研究”。选择“AI 协作研究”并点击“生成研究简报”后，才会调用模型服务；只打开或刷新网页不会调用模型。先在本机 `.env` 填写 `LLM_API_KEY`、`LLM_BASE_URL` 和 `LLM_MODEL_ID`。例如 DeepSeek 的地址是 `https://api.deepseek.com`；密钥不要提交到 Git。AI 按钮是单次显式授权，不需要把 `LLM_ENABLED` 改成 `true`。旧规则路径若设置 `LLM_ENABLED=true`，仍只调用模型做原文摘录。
+
+AI 路径按“模型规划 → 模型数据分析与资料检索 → 程序核验 → 模型复核”运行。模型只可调用 `get_signal`、`search_documents`、`get_document_chunk` 三种只读工具；工具参数、ETF、日期、检索范围和调用次数由程序限制。五项指标和直接回答由 Python 计算、生成；模型可选择查询词和补充检索，但不能写数据库、联网抓取新资料或自行发布数字。模型提供的原文摘录必须在所引片段中逐字定位。报告会保留角色、工具调用、来源日期与失败降级记录。当前 AI 路径是本地作品集原型，不能据文档推断资金变化的成因。
+
+第一次体验可先选“演示数据”，输入“510300当前资金信号和已入库资料分别能说明什么？”，选择“AI 协作研究”，点击“生成研究简报”。演示数据和资料都是合成的。可在临时演示库里执行一次真实模型试跑：
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.smoke_ai_research
+```
+
+已核对的三份上交所资料清单在 `data/curated_sources.json`。以下命令先联网抓取并核对正文，不写真实数据库；加 `--apply` 后会先建立 SQLite 备份、检查完整性，再一次性导入资料。它不会收集行情和份额。
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.import_curated_sources
+.\.venv\Scripts\python.exe -m scripts.import_curated_sources --apply
+```
+
+`evals/semantic_cases.json` 提供三个手写检查场景；以下命令只用临时演示库比较规则、单模型和多 Agent 路径，`--ai` 会产生模型费用，结果保存到 `output/semantic_comparison.json`。自动检查覆盖预期状态、信号、日期、资料命中、引用编号和因果限制；仍需人工逐条核对回答与原文。演示数据评测不能证明真实数据的新鲜度或线上质量。
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.evaluate_research_methods --ai
+```
+
+本次实现、真实数据快照和抽样核对结果见[AI 协作研究验收记录](docs/ai_agent_acceptance_2026-10-10.md)。可用 `.\.venv\Scripts\python.exe -m scripts.smoke_ai_live_snapshot` 只读复制真实库到临时库，并在副本上做一次真实模型试跑；此命令不更新行情或原库报告。
 
 建议始终使用项目 `.venv`，不要把项目依赖直接混装到承担Jupyter等其他任务的Anaconda基础环境中。
 

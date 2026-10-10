@@ -6,6 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from app.agents.single_agent import SingleResearchAgent
+from app.agents.llm_research import ModelDrivenResearchAgent
 from app.config import ALGORITHM_VERSION, ALLOWED_ETFS, DATA_MODE, SETTINGS_DATABASE_PATH, database_path_for_mode
 from app.data.repositories.sqlite import SQLiteRepository
 from app.data.seed import seed_demo, seed_profile
@@ -168,6 +169,15 @@ FIELD_LABELS = {
     "contribution": "对信号的作用", "date_range": "查询日期范围", "evidence": "依据",
     "fund_company": "基金管理人", "index_name": "跟踪指数", "indicator": "指标", "query": "检索内容",
     "reason": "判断依据", "source": "数据来源", "value": "指标结果",
+    "research_method": "研究方式", "tool_calls": "工具调用", "tool": "工具名称",
+    "model_usage": "模型用量", "usage": "模型用量", "model": "模型名称",
+    "total_tokens": "总词元数", "prompt_tokens": "输入词元数", "completion_tokens": "输出词元数",
+    "prompt_tokens_details": "输入词元明细", "completion_tokens_details": "输出词元明细",
+    "cached_tokens": "缓存词元数", "reasoning_tokens": "推理词元数",
+    "prompt_cache_hit_tokens": "命中缓存的词元数", "prompt_cache_miss_tokens": "未命中缓存的词元数",
+    "discarded_focus": "已排除的额外主题", "restored_focus": "已补齐的研究主题",
+    "fallback": "按基金代码回退", "reviewed": "模型已复核", "supported": "核验认为有依据",
+    "quotes_accepted": "通过逐字核对的摘录数", "blocked_by_scope": "问题超出范围",
 }
 VALUE_LABELS = {
     **SIGNAL_LABELS, **STRENGTH_LABELS, **MODE_LABELS, **TRACE_STATUS_LABELS,
@@ -181,6 +191,9 @@ VALUE_LABELS = {
     "turnover_percentile": INDICATOR_LABELS["turnover_percentile"],
     "price_return_5d": INDICATOR_LABELS["price_return_5d"],
     "volume_ratio_5d": INDICATOR_LABELS["volume_ratio_5d"],
+    "ai_collaboration": "AI 协作研究", "rules": "规则研究",
+    "get_signal": "读取程序计算的指标", "search_documents": "检索已入库资料",
+    "get_document_chunk": "读取资料片段",
 }
 
 
@@ -356,6 +369,11 @@ if sync_clicked:
             st.json(readable_details(sync_result.model_dump(mode="json")))
         status.update(label="更新已完成，请查看新增记录和提示", state="complete")
 
+research_method = st.radio("研究方式", ["规则研究", "AI 协作研究"], horizontal=True,
+    help="AI 协作研究会在点击生成后调用已配置的大模型；模型规划和检索，数字由程序计算，结论经过核验。")
+if research_method == "AI 协作研究":
+    st.caption("点击生成后才会向模型服务发送研究问题、程序计算结果和命中的本地资料片段；"
+               "本次报告与工具记录保存在当前数据模式的本地数据库。模型服务可能产生费用。")
 run_col, hint_col = st.columns([1, 3.5], vertical_alignment="center")
 with run_col:
     run_research = st.button("生成研究简报", type="primary", width="stretch", disabled=not question.strip())
@@ -366,13 +384,20 @@ if not question.strip():
     st.warning("请先输入研究问题。")
 
 if run_research:
-    with st.spinner("正在计算指标并核验公开资料……"):
-        st.session_state["latest_report"] = SingleResearchAgent(ResearchTools(repo, active_mode)).run(
-            question, etf_code
-        ).final_report
+    with st.spinner("正在规划、读取证据并核验报告……"):
+        try:
+            agent = (ModelDrivenResearchAgent(ResearchTools(repo, active_mode))
+                     if research_method == "AI 协作研究" else
+                     SingleResearchAgent(ResearchTools(repo, active_mode)))
+            st.session_state["latest_report"] = agent.run(question, etf_code).final_report
+        except Exception as exc:
+            st.error(f"本次研究未完成：{exc}")
 
 report = st.session_state.get("latest_report")
-if report and (report["etf"]["etf_code"] != etf_code or report["data_mode"] != active_mode or report.get("question") != question.strip()):
+selected_method = "ai_collaboration" if research_method == "AI 协作研究" else "rules"
+if report and (report["etf"]["etf_code"] != etf_code or report["data_mode"] != active_mode
+               or report.get("question") != question.strip()
+               or report.get("research_method", "rules") != selected_method):
     st.session_state.pop("latest_report")
     report = None
 if report:

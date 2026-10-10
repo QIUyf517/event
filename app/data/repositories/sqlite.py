@@ -64,10 +64,19 @@ class SQLiteRepository:
         self.conn.commit()
 
     def upsert_document(self, doc: Document, chunks: Iterable[DocumentChunk]):
-        self.conn.execute("INSERT OR REPLACE INTO documents(document_id,title,content,source_url,publisher,published_at,fetched_at,document_type,etf_codes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (doc.document_id, doc.title, doc.content, doc.source_url, doc.publisher, doc.published_at.isoformat(), doc.fetched_at.isoformat(), doc.document_type, json.dumps(doc.etf_codes, ensure_ascii=False)))
-        self.conn.execute("DELETE FROM document_chunks WHERE document_id=?", (doc.document_id,))
-        self.conn.executemany("INSERT OR REPLACE INTO document_chunks(chunk_id,document_id,content,title,source_url,published_at,page,location) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [(c.chunk_id, c.document_id, c.content, c.title, c.source_url, c.published_at.isoformat(), c.page, c.location) for c in chunks])
-        self.conn.commit()
+        self.upsert_documents([(doc, chunks)])
+
+    def upsert_documents(self, items: Iterable[tuple[Document, Iterable[DocumentChunk]]]):
+        """Import a prevalidated batch atomically."""
+        try:
+            with self.conn:
+                for doc, chunks in items:
+                    self.conn.execute("INSERT OR REPLACE INTO documents(document_id,title,content,source_url,publisher,published_at,fetched_at,document_type,etf_codes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (doc.document_id, doc.title, doc.content, doc.source_url, doc.publisher, doc.published_at.isoformat(), doc.fetched_at.isoformat(), doc.document_type, json.dumps(doc.etf_codes, ensure_ascii=False)))
+                    self.conn.execute("DELETE FROM document_chunks WHERE document_id=?", (doc.document_id,))
+                    self.conn.executemany("INSERT OR REPLACE INTO document_chunks(chunk_id,document_id,content,title,source_url,published_at,page,location) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [(c.chunk_id, c.document_id, c.content, c.title, c.source_url, c.published_at.isoformat(), c.page, c.location) for c in chunks])
+        except Exception:
+            self.conn.rollback()
+            raise
 
     def market(self, etf_code: str, end_date: date, limit: int = 365) -> list[MarketBar]:
         rows = self.conn.execute("SELECT * FROM etf_daily WHERE etf_code=? AND trade_date<=? ORDER BY trade_date DESC LIMIT ?", (etf_code, end_date.isoformat(), limit)).fetchall()
@@ -88,6 +97,7 @@ class SQLiteRepository:
                 terms.extend(token[i:i + size] for size in (4, 3, 2) for i in range(len(token) - size + 1))
             else:
                 terms.append(token)
+        terms = list(dict.fromkeys(term for term in terms if term != etf_code))
         clauses, params = [], []
         if etf_code:
             clauses.append("d.etf_codes LIKE ?")
@@ -102,12 +112,24 @@ class SQLiteRepository:
         rows = self.conn.execute(f"SELECT c.* FROM document_chunks c JOIN documents d ON d.document_id=c.document_id {where} ORDER BY c.published_at DESC", params).fetchall()
         ranked = []
         for r in rows:
-            haystack = f"{r['title']} {r['content']}".lower()
-            score = sum(haystack.count(t) for t in terms) if terms else 0
-            if score:
-                ranked.append((score, r))
-        ranked.sort(key=lambda x: (x[0], x[1]["published_at"]), reverse=True)
-        return [DocumentChunk(chunk_id=r["chunk_id"], document_id=r["document_id"], content=r["content"], title=r["title"], source_url=r["source_url"], published_at=date.fromisoformat(r["published_at"]), page=r["page"], location=r["location"]) for _, r in ranked[:limit]]
+            content = r["content"].lower()
+            title = r["title"].lower()
+            body_score = sum(content.count(term) for term in terms)
+            title_score = sum(title.count(term) for term in terms)
+            if not terms or body_score or title_score:
+                ranked.append((int(body_score > 0), body_score * 3 + title_score,
+                               r["published_at"], r))
+        ranked.sort(key=lambda item: item[:3], reverse=True)
+        selected, per_document = [], {}
+        for _, _, _, row in ranked:
+            document_id = row["document_id"]
+            if per_document.get(document_id, 0) >= 2:
+                continue
+            selected.append(row)
+            per_document[document_id] = per_document.get(document_id, 0) + 1
+            if len(selected) >= limit:
+                break
+        return [DocumentChunk(chunk_id=r["chunk_id"], document_id=r["document_id"], content=r["content"], title=r["title"], source_url=r["source_url"], published_at=date.fromisoformat(r["published_at"]), page=r["page"], location=r["location"]) for r in selected]
 
     def save_signal(self, result: SignalResult):
         self.conn.execute("INSERT OR REPLACE INTO signal_results VALUES (?, ?, ?, ?)", (result.etf_code, result.as_of_date.isoformat(), result.model_dump_json(), result.algorithm_version))

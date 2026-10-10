@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from app.agents.single_agent import SingleResearchAgent
+from app.agents.llm_research import ModelDrivenResearchAgent
 from app.config import ALLOWED_ETFS, DATA_MODE, database_path_for_mode
 from app.data.repositories.sqlite import SQLiteRepository
 from app.data.seed import seed_demo, seed_profile
@@ -35,6 +36,8 @@ def build_parser() -> argparse.ArgumentParser:
     research.add_argument("question", nargs="?", default=DEFAULT_QUESTION)
     research.add_argument("--etf", default="510300")
     research.add_argument("--as-of", type=parse_date, default=date.today())
+    research.add_argument("--method", choices=["rules", "ai"], default="rules",
+                          help="ai 会显式调用已配置的大模型并产生服务费用")
     monitor = sub.add_parser("monitor-once", help="手动执行一次三只ETF监控")
     monitor.add_argument("--as-of", type=parse_date, default=date.today())
     monitor.add_argument("--no-sync", action="store_true", help="仅使用本地数据，不联网同步")
@@ -96,7 +99,9 @@ def main():
                 raise SystemExit("demo数据库为空，请先运行: etf-research --mode demo seed-demo")
             if args.mode == "live":
                 seed_profile(repo, args.etf)
-            result = SingleResearchAgent(ResearchTools(repo, args.mode)).run(args.question, args.etf, args.as_of).final_report
+            agent = (ModelDrivenResearchAgent(ResearchTools(repo, args.mode)) if args.method == "ai"
+                     else SingleResearchAgent(ResearchTools(repo, args.mode)))
+            result = agent.run(args.question, args.etf, args.as_of).final_report
         elif args.command == "monitor-once":
             result = run_monitor_once(repo, args.as_of, args.mode, sync_live=not args.no_sync).model_dump(mode="json")
         elif args.command == "compare":
