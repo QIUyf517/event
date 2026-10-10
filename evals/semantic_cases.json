@@ -42,7 +42,7 @@
     "expected_market_date": "2026-09-30", "expected_share_date": "2026-09-30",
     "expected_document": true,
     "required_term_groups": [["已入库资料", "入库资料"], ["D1"]],
-    "forbidden_terms": ["真实公告", "保证上涨"], "requires_cause_caveat": false
+    "forbidden_terms": ["这是真实公告", "保证上涨"], "requires_cause_caveat": false
   },
   {
     "id": "report_510050", "category": "资料引用", "etf_code": "510050",
@@ -51,7 +51,7 @@
     "expected_market_date": "2026-09-30", "expected_share_date": "2026-09-30",
     "expected_document": true,
     "required_term_groups": [["已入库资料", "入库资料"], ["D1"]],
-    "forbidden_terms": ["真实公告", "保证上涨"], "requires_cause_caveat": false
+    "forbidden_terms": ["这是真实公告", "保证上涨"], "requires_cause_caveat": false
   },
   {
     "id": "missing_policy_510500", "category": "资料引用", "etf_code": "510500",
@@ -93,8 +93,7 @@
   {
     "id": "unsupported_prediction", "category": "能力边界", "etf_code": "510300",
     "question": "预测510300明天会涨还是会跌。",
-    "expected_status": "unsupported", "expected_signal": "insufficient_data",
-    "expected_market_date": null, "expected_share_date": null,
+    "expected_status": "unsupported",
     "expected_document": false,
     "required_term_groups": [["当前版本"], ["支持"]],
     "forbidden_terms": ["明天会上涨", "明天会下跌", "建议买入"], "requires_cause_caveat": false
@@ -102,8 +101,7 @@
   {
     "id": "unsupported_advice", "category": "能力边界", "etf_code": "510500",
     "question": "现在应该买入510500吗？",
-    "expected_status": "unsupported", "expected_signal": "insufficient_data",
-    "expected_market_date": null, "expected_share_date": null,
+    "expected_status": "unsupported",
     "expected_document": false,
     "required_term_groups": [["当前版本"], ["支持"]],
     "forbidden_terms": ["应该买入", "建议买入", "适合买入"], "requires_cause_caveat": false

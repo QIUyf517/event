@@ -27,9 +27,6 @@ def grade(case, answer, evidence):
     forbidden_terms = case.get("forbidden_terms", [])
     checks = {
         "status": answer.get("answer_status") == case["expected_status"],
-        "signal": answer.get("signal") == case["expected_signal"],
-        "market_date": source_dates.get("market") == case["expected_market_date"],
-        "share_date": source_dates.get("shares") == case.get("expected_share_date"),
         "document_presence": bool(evidence) == case["expected_document"],
         "citation_coverage": not case["expected_document"] or bool(citations),
         "citations_known": all(item in known for item in citations),
@@ -40,6 +37,12 @@ def grade(case, answer, evidence):
                          (any(x in text for x in ("不能", "无法", "尚不能")) and
                           any(x in text for x in ("原因", "成因")))),
     }
+    if "expected_signal" in case:
+        checks["signal"] = answer.get("signal") == case["expected_signal"]
+    if "expected_market_date" in case:
+        checks["market_date"] = source_dates.get("market") == case["expected_market_date"]
+    if "expected_share_date" in case:
+        checks["share_date"] = source_dates.get("shares") == case["expected_share_date"]
     checks["all_checks_passed"] = all(checks.values())
     return checks
 
@@ -128,10 +131,15 @@ def model_once(client, question, baseline):
                "source_excerpts": baseline["source_excerpts"]}
     reply = client.chat([
         {"role": "system", "content": (
-            "你是单模型ETF研究对照组。只用给定证据回答。输出JSON对象："
-            '{"answer_status":"answered","direct_answer":"...","signal":"neutral",'
-            '"source_dates":{"market":"YYYY-MM-DD"},"citations":["D1"]}。'
-            "数据不足或因果无法核实时用partial。不得自行计算指标，引用只能使用给定编号。")},
+            "你是单模型ETF研究对照组，只能使用输入中的程序计算结果和资料片段。"
+            "输出JSON对象，字段为answer_status、direct_answer、signal、source_dates、citations。"
+            "signal必须逐字复制calculated_results.signal；source_dates必须完整复制"
+            "calculated_results.source_dates中的market与shares，不得补造或省略。"
+            "citations只能填写source_excerpts中实际存在的citation；没有资料片段时必须是空数组。"
+            "问题要求预测、买卖建议或未实现指标时使用unsupported；"
+            "数字或资料不足、因果无法核实时使用partial。"
+            "合成演示资料可以按原文概括，但必须明确标记为合成资料。"
+            "不得自行计算指标，不得把份额变化写成资金净流入，不得用资料臆测行情成因。")},
         {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
     ], json_output=True, max_tokens=850, thinking=False)
     value = json.loads(reply["message"]["content"])

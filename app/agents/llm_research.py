@@ -104,9 +104,11 @@ class ModelDrivenResearchAgent:
         query = data.get("document_query", "")
         if not isinstance(query, str) or len(query) > 120:
             raise ValueError("模型资料检索词无效")
-        return QuestionPlan(focus, asks_cause=guard.asks_cause), {
+        return QuestionPlan(focus, document_types=guard.document_types,
+                            asks_cause=guard.asks_cause), {
             "focus": list(focus), "discarded_focus": [x for x in raw_focus if x not in focus],
             "restored_focus": restored,
+            "document_types": list(guard.document_types or ()),
             "document_query": query.strip(), "reason": str(data.get("reason", ""))[:160],
             "usage": reply.get("usage", {}), "model": reply.get("model")}
 
@@ -146,7 +148,8 @@ class ModelDrivenResearchAgent:
         finally:
             repo.close()
 
-    def _document_worker(self, question: str, query: str, etf_code: str, as_of_date: date):
+    def _document_worker(self, question: str, query: str, etf_code: str, as_of_date: date,
+                         document_types: tuple[str, ...] | None):
         repo = SQLiteRepository.open_readonly(self.tools.repo.path)
         found = {}
         calls = []
@@ -180,7 +183,8 @@ class ModelDrivenResearchAgent:
                         if not isinstance(search, str) or not search.strip() or len(search) > 120:
                             raise ValueError("资料检索词无效")
                         rows = repo.search_chunks(search, etf_code,
-                            (as_of_date - timedelta(days=365), as_of_date), limit=5)
+                            (as_of_date - timedelta(days=365), as_of_date),
+                            document_types=list(document_types) if document_types else None, limit=5)
                         for row in rows:
                             found[row.chunk_id] = row
                         payload = [row.model_dump(mode="json") for row in rows]
@@ -202,7 +206,8 @@ class ModelDrivenResearchAgent:
                 # A broad question can be missed by a model-chosen phrase. Keep
                 # the fallback explicit; the reporter still cannot infer cause.
                 rows = repo.search_chunks(etf_code, etf_code,
-                    (as_of_date - timedelta(days=365), as_of_date), limit=2)
+                    (as_of_date - timedelta(days=365), as_of_date),
+                    document_types=list(document_types) if document_types else None, limit=2)
                 for row in rows:
                     found[row.chunk_id] = row
                 calls.append({"tool": "search_documents", "query": etf_code,
@@ -287,7 +292,8 @@ class ModelDrivenResearchAgent:
             self._record(state, skipped("模型公开资料 Agent", "此问题不需要资料检索"), {}, {})
         else:
             result, trace = timed("模型公开资料 Agent", lambda: self._document_worker(
-                question, plan_info.get("document_query", ""), etf_code, as_of_date))
+                question, plan_info.get("document_query", ""), etf_code, as_of_date,
+                plan_obj.document_types))
             documents_failed = result is None
             if result:
                 docs, calls, usage = result

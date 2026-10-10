@@ -43,7 +43,7 @@ def test_model_directs_tools_but_program_controls_numbers_and_quotes(tmp_path):
         answer('{"supported":true,"source_quotes":["不存在的原文 [D1]"],"concerns":[]}'),
     ]
     repo, agent = build(tmp_path, replies)
-    state = agent.run("510300当前资金信号和公告资料", "510300", AS_OF)
+    state = agent.run("510300当前资金信号和已入库资料", "510300", AS_OF)
     report = state.final_report
     assert report["research_method"] == "ai_collaboration"
     assert [x.agent for x in state.execution_trace] == [
@@ -145,4 +145,23 @@ def test_planner_cannot_drop_an_explicitly_requested_document_topic(tmp_path):
     assert report["question_focus"] == ["signal", "documents"]
     assert report["source_excerpts"]
     assert report["execution_trace"][0]["output_summary"]["restored_focus"] == ["documents"]
+    repo.close()
+
+
+def test_requested_document_type_is_kept_during_search_and_fallback(tmp_path):
+    replies = [
+        answer('{"focus":["documents"],"document_query":"510500 政策","reason":"核对政策资料"}'),
+        answer(calls=[tool("search_documents", {"query": "510500 政策"})]),
+        answer("没有检索结果"),
+        answer('{"supported":true,"source_quotes":[],"concerns":[]}'),
+    ]
+    repo, agent = build(tmp_path, replies)
+
+    report = agent.run("510500已入库的政策资料说明了什么？", "510500", AS_OF).final_report
+
+    assert report["answer_status"] == "partial"
+    assert report["source_excerpts"] == []
+    assert "没有找到" in report["direct_answer"]
+    assert report["execution_trace"][0]["output_summary"]["document_types"] == ["policy"]
+    assert report["execution_trace"][2]["output_summary"]["tool_calls"][-1]["hits"] == []
     repo.close()
