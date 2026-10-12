@@ -15,9 +15,11 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from app.agents.llm_research import ModelDrivenResearchAgent
+from app.agents.event_orchestrator import EventResearchOrchestrator
 from app.agents.single_agent import SingleResearchAgent
 from app.config import (ALGORITHM_VERSION, ALLOWED_ETFS, API_CORS_ORIGINS, API_WRITE_KEY,
-                        APP_VERSION, SETTINGS_DATABASE_PATH, database_path_for_mode)
+                         APP_VERSION, EVENT_RESEARCH_DATABASE_PATH, PROJECT_ROOT,
+                         SETTINGS_DATABASE_PATH, database_path_for_mode)
 from app.data.repositories.sqlite import SQLiteRepository
 from app.data.seed import seed_demo, seed_profile
 from app.data.sync import sync_market_data
@@ -25,11 +27,25 @@ from app.evaluation.service import DEFAULT_OUTPUT
 from app.models.research import UserSettings
 from app.monitoring.service import compare_etfs, run_monitor_once
 from app.reporting.pdf_export import render_report_pdf, report_pdf_filename
-from app.tools.research_tools import ResearchTools
+from app.tools.research_tools import EVENT_SUBJECTS, ResearchTools
 
 
 Mode = Literal["demo", "live"]
 ResearchMethod = Literal["rules", "ai"]
+EventMaterialType = Literal["announcement", "news", "financial"]
+ACCEPTED_EVENT_SAMPLE_PATH = (PROJECT_ROOT / "output" / "event-phase2-20261012-accepted"
+                              / "event_research_phase2.sqlite3")
+ACCEPTED_EVENT_PHASE3_PATH = (PROJECT_ROOT / "output" / "event-phase3-20261012-acceptance"
+                              / "event_research_phase3.sqlite3")
+
+
+def event_excerpt(content: str, query: str, max_chars: int = 320) -> str:
+    """Show a short original-text excerpt near an exact keyword match when possible."""
+    text = " ".join(content.split())
+    position = text.lower().find(query.lower())
+    start = max(0, position - 90) if position >= 0 else 0
+    end = min(len(text), start + max_chars)
+    return ("…" if start else "") + text[start:end] + ("…" if end < len(text) else "")
 
 
 class ResearchRequest(BaseModel):
@@ -38,6 +54,13 @@ class ResearchRequest(BaseModel):
     as_of_date: date = Field(default_factory=date.today)
     mode: Mode = "demo"
     method: ResearchMethod = "rules"
+
+
+class EventPlanRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=500)
+    subject_code: str
+    window_start: date
+    as_of_date: date
 
 
 class MonitorRequest(BaseModel):
@@ -52,7 +75,8 @@ class SyncRequest(BaseModel):
 
 
 def create_app(database_resolver: Callable[[str], Path] = database_path_for_mode,
-               write_key: str | None = API_WRITE_KEY, settings_path: Path | None = None) -> FastAPI:
+               write_key: str | None = API_WRITE_KEY, settings_path: Path | None = None,
+               event_database_path: Path | None = None) -> FastAPI:
     api = FastAPI(title="A股ETF公开资料与资金信号研究助手 API", version=APP_VERSION,
         description="提供可核验的ETF信号、研究报告、存档、PDF和监控状态。写接口需要X-API-Key。")
     if API_CORS_ORIGINS:
@@ -73,6 +97,19 @@ def create_app(database_resolver: Callable[[str], Path] = database_path_for_mode
     def open_settings_repo() -> SQLiteRepository:
         return SQLiteRepository(settings_path or SETTINGS_DATABASE_PATH)
 
+    def open_event_repo() -> tuple[SQLiteRepository, str]:
+        if event_database_path is not None:
+            path, source_kind = event_database_path, "configured"
+        elif EVENT_RESEARCH_DATABASE_PATH.is_file():
+            path, source_kind = EVENT_RESEARCH_DATABASE_PATH, "active"
+        elif ACCEPTED_EVENT_PHASE3_PATH.is_file():
+            path, source_kind = ACCEPTED_EVENT_PHASE3_PATH, "accepted_phase3_sample"
+        else:
+            path, source_kind = ACCEPTED_EVENT_SAMPLE_PATH, "accepted_sample"
+        if not path.is_file():
+            raise HTTPException(status_code=404, detail="尚无事件资料库，请先采集资料或配置事件资料库路径")
+        return SQLiteRepository.open_readonly(path), source_kind
+
     @api.get("/", tags=["system"])
     def root():
         return {"service": api.title, "version": APP_VERSION, "docs": "/docs", "health": "/health"}
@@ -90,6 +127,66 @@ def create_app(database_resolver: Callable[[str], Path] = database_path_for_mode
     @api.get("/api/v1/etfs", tags=["research"])
     def etfs():
         return [{"etf_code": code, "name": name} for code, name in ALLOWED_ETFS.items()]
+
+    @api.get("/api/v1/event-research/subjects", tags=["event research"])
+    def event_subjects():
+        repo, source_kind = open_event_repo()
+        try:
+            coverage = repo.conn.execute(
+                "SELECT MIN(published_at) AS first_date, MAX(published_at) AS last_date "
+                "FROM documents WHERE duplicate_of IS NULL AND document_type IN ('announcement','news','financial')"
+            ).fetchone()
+            return {"subjects": [item.model_dump(mode="json") for item in repo.list_research_subjects()
+                                 if item.subject_id in EVENT_SUBJECTS],
+                    "available_start": coverage["first_date"], "available_end": coverage["last_date"],
+                    "source_kind": source_kind}
+        finally:
+            repo.close()
+
+    @api.get("/api/v1/event-research/search", tags=["event research"])
+    def search_event_materials(subject_id: str, start_date: date, end_date: date,
+                               query: str = Query(min_length=1, max_length=120),
+                               source_types: list[EventMaterialType] | None = Query(default=None),
+                               limit: int = Query(20, ge=1, le=30)):
+        if subject_id not in EVENT_SUBJECTS:
+            raise HTTPException(status_code=422, detail="研究对象不在支持范围内")
+        if start_date > end_date:
+            raise HTTPException(status_code=422, detail="开始日期不能晚于结束日期")
+        keyword = query.strip()
+        if not keyword:
+            raise HTTPException(status_code=422, detail="请输入检索关键词")
+        repo, source_kind = open_event_repo()
+        try:
+            hits = repo.search_event_chunks(keyword, subject_id, end_date,
+                window_start=start_date, source_types=source_types, limit=limit)
+            return {"subject_id": subject_id, "start_date": start_date.isoformat(),
+                    "end_date": end_date.isoformat(), "query": keyword,
+                    "source_types": source_types or [], "source_kind": source_kind,
+                    "count": len(hits), "items": [{
+                        "chunk_id": hit.chunk.chunk_id, "document_id": hit.chunk.document_id,
+                        "title": hit.chunk.title, "publisher": hit.chunk.publisher,
+                        "source_url": hit.chunk.source_url,
+                        "published_at": hit.chunk.published_at.isoformat(),
+                        "document_type": hit.chunk.document_type,
+                        "excerpt": event_excerpt(hit.chunk.content, keyword),
+                    } for hit in hits]}
+        finally:
+            repo.close()
+
+    @api.post("/api/v1/event-research/plan-run", tags=["event research"],
+              dependencies=[Depends(require_write_access)])
+    def run_event_plan(request: EventPlanRequest):
+        repo, source_kind = open_event_repo()
+        path = repo.path
+        repo.close()
+        try:
+            result = EventResearchOrchestrator(path).run(request.question, request.subject_code,
+                request.as_of_date, request.window_start)
+            return {"source_kind": source_kind, "run": result.model_dump(mode="json")}
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     @api.get("/api/v1/evaluation/latest", tags=["system"])
     def latest_evaluation():

@@ -148,6 +148,39 @@ td small { display: block; margin-top: 3px; color: #84908c; }
 .log-row { display: grid; grid-template-columns: 90px 1fr auto; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
 .log-row small { color: #7a8783; }
 .empty-state { padding: 22px; color: #75827e; background: #f1f0ea; text-align: center; }
+.event-header { margin-bottom: 0; }
+.event-header h1 { font-size: clamp(36px, 4vw, 52px); }
+.event-workspace { display: grid; grid-template-columns: minmax(270px, 340px) minmax(0, 1fr); gap: 32px; align-items: start; margin-top: 32px; }
+.event-search-form { display: grid; gap: 21px; padding: 25px; background: var(--paper-deep); border-top: 3px solid var(--jade); }
+.event-form-heading { display: flex; align-items: flex-start; gap: 12px; padding-bottom: 18px; border-bottom: 1px solid #d4d9d4; }
+.event-form-heading svg { width: 22px; flex: 0 0 auto; color: var(--jade); }
+.event-form-heading h2, .event-results-heading h2 { margin: 0; color: #17332f; font: 600 23px Georgia, "Songti SC", serif; }
+.event-form-heading p, .event-results-heading p { margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.event-date-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.event-type-fieldset { margin: 0; padding: 0; border: 0; }
+.event-type-fieldset legend { margin-bottom: 10px; color: #4c5e5a; font-size: 13px; font-weight: 650; }
+.event-type-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.event-type-option { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
+.event-type-option input { position: absolute; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.event-type-option span { padding: 8px 11px; color: #4c5e5a; background: #fff; border: 1px solid #c8cfca; font-weight: 500; }
+.event-type-option input:checked + span { color: var(--jade-dark); background: var(--jade-pale); border-color: var(--jade); }
+.event-type-option input:focus-visible + span { outline: 2px solid var(--jade); outline-offset: 2px; }
+.event-search-button { width: 100%; }
+.event-results { min-width: 0; }
+.event-results-heading { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.event-results-heading strong { flex: 0 0 auto; color: var(--jade-dark); font-size: 13px; }
+.event-coverage { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 13px 0; border-bottom: 1px solid var(--line); color: #687873; font-size: 12px; }
+.event-coverage strong { color: var(--jade-dark); }
+.event-hit { padding: 25px 0 28px; border-bottom: 1px solid var(--line); }
+.event-hit-meta { display: flex; justify-content: space-between; gap: 12px; color: #6a7874; font-size: 12px; }
+.event-hit-meta span { color: var(--jade-dark); font-weight: 700; }
+.event-hit h3 { margin: 11px 0 6px; color: var(--ink); font: 600 21px/1.4 Georgia, "Songti SC", serif; }
+.event-publisher { margin: 0 0 15px; color: #687873; font-size: 12px; }
+.event-hit blockquote { margin: 0 0 15px; padding: 0 0 0 15px; border-left: 2px solid #a9c7bc; color: #455752; line-height: 1.75; overflow-wrap: anywhere; }
+.event-hit a { display: inline-flex; align-items: center; gap: 3px; color: var(--jade-dark); font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.event-hit a:focus-visible, .event-search-button:focus-visible { outline: 2px solid var(--jade); outline-offset: 3px; }
+.event-link-unavailable { color: #7b8984; font-size: 12px; }
+.event-empty { padding: 48px 20px; color: #64736f; line-height: 1.7; text-align: center; }
 footer { padding: 22px 32px 28px; color: #7b8984; text-align: center; font-size: 11px; border-top: 1px solid var(--line); }
 
 @media (max-width: 900px) {
@@ -161,6 +194,7 @@ footer { padding: 22px 32px 28px; color: #7b8984; text-align: center; font-size:
   .page-header { grid-template-columns: 1fr; gap: 20px; }
   .indicator-grid { grid-template-columns: repeat(2, 1fr); }
   .operations-grid, .log-grid { grid-template-columns: 1fr; gap: 0; }
+  .event-workspace { grid-template-columns: 1fr; }
   .operations-toolbar { grid-template-columns: 1fr 1fr; }
   .operations-toolbar .key-field { grid-column: 1 / -1; }
 }
@@ -181,4 +215,5 @@ footer { padding: 22px 32px 28px; color: #7b8984; text-align: center; font-size:
   .trace-list summary { grid-template-columns: auto 1fr auto; }
   .trace-list summary span { grid-column: 2 / -1; }
   .archive-list article { grid-template-columns: 1fr; gap: 5px; }
+  .event-date-fields { grid-template-columns: 1fr; }
 }

@@ -1,0 +1,61 @@
+{
+  "schema_version": "event-source-manifest-v1",
+  "window_start": "2026-08-14",
+  "as_of_date": "2026-09-13",
+  "items": [
+    {
+      "subject_id": "600519",
+      "source_id": "cninfo_announcement",
+      "url": "https://static.cninfo.com.cn/finalpage/2026-08-15/1225475868.PDF",
+      "title": "贵州茅台2026年半年度报告",
+      "publisher": "贵州茅台酒股份有限公司",
+      "published_at": "2026-08-15",
+      "material_type": "financial"
+    },
+    {
+      "subject_id": "600519",
+      "source_id": "stcn_news",
+      "url": "https://www.stcn.com/article/detail/4077527.html",
+      "title": "茅台上半年净利微降，回应行业周期、调价机制、渠道建设等",
+      "publisher": "证券时报网",
+      "published_at": "2026-08-14",
+      "material_type": "news"
+    },
+    {
+      "subject_id": "601318",
+      "source_id": "company_ir_601318",
+      "url": "https://www.pingan.cn/zh/common/cn_news/1787276812004.shtml",
+      "title": "中国平安2026年上半年业绩新闻通稿",
+      "publisher": "中国平安保险（集团）股份有限公司",
+      "published_at": "2026-08-21",
+      "material_type": "financial"
+    },
+    {
+      "subject_id": "601318",
+      "source_id": "stcn_news",
+      "url": "https://www.stcn.com/article/detail/4091141.html",
+      "title": "中国平安：上半年归母净利润925.85亿元 同比增长36.1%",
+      "publisher": "证券时报网",
+      "published_at": "2026-08-20",
+      "material_type": "news"
+    },
+    {
+      "subject_id": "688981",
+      "source_id": "cninfo_announcement",
+      "url": "https://static.cninfo.com.cn/finalpage/2026-08-28/1225520297.PDF",
+      "title": "中芯国际2026年半年度报告",
+      "publisher": "中芯国际集成电路制造有限公司",
+      "published_at": "2026-08-28",
+      "material_type": "financial"
+    },
+    {
+      "subject_id": "688981",
+      "source_id": "stcn_news",
+      "url": "https://www.stcn.com/article/detail/4143264.html",
+      "title": "万亿芯片龙头，净利同比大增94.16%",
+      "publisher": "证券时报网",
+      "published_at": "2026-08-27",
+      "material_type": "news"
+    }
+  ]
+}

@@ -1,5 +1,41 @@
 export type DataMode = "demo" | "live";
 export type ResearchMethod = "rules" | "ai";
+export type EventMaterialType = "announcement" | "news" | "financial";
+
+export interface EventSubject {
+  subject_id: string;
+  code: string;
+  name: string;
+}
+
+export interface EventSubjectsResponse {
+  subjects: EventSubject[];
+  available_start: string | null;
+  available_end: string | null;
+  source_kind: "active" | "configured" | "accepted_sample" | "accepted_phase3_sample";
+}
+
+export interface EventMaterialHit {
+  chunk_id: string;
+  document_id: string;
+  title: string;
+  publisher: string;
+  source_url: string;
+  published_at: string;
+  document_type: EventMaterialType;
+  excerpt: string;
+}
+
+export interface EventSearchResponse {
+  subject_id: string;
+  start_date: string;
+  end_date: string;
+  query: string;
+  source_types: EventMaterialType[];
+  source_kind: EventSubjectsResponse["source_kind"];
+  count: number;
+  items: EventMaterialHit[];
+}
 
 export interface Etf {
   etf_code: string;

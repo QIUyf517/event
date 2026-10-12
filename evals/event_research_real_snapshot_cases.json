@@ -1,0 +1,35 @@
+[
+  {
+    "id": "real_600519_20260913",
+    "subject_code": "600519",
+    "question": "截至2026年9月13日，查看贵州茅台最近30天已保存的财务披露与新闻资料。",
+    "window_start": "2026-08-14",
+    "as_of_date": "2026-09-13",
+    "expected_sources": [
+      {"source_id": "stcn_news", "document_type": "news", "published_at": "2026-08-14"},
+      {"source_id": "cninfo_announcement", "document_type": "financial", "published_at": "2026-08-15"}
+    ]
+  },
+  {
+    "id": "real_601318_20260913",
+    "subject_code": "601318",
+    "question": "截至2026年9月13日，查看中国平安最近30天已保存的财务披露与新闻资料。",
+    "window_start": "2026-08-14",
+    "as_of_date": "2026-09-13",
+    "expected_sources": [
+      {"source_id": "stcn_news", "document_type": "news", "published_at": "2026-08-20"},
+      {"source_id": "company_ir_601318", "document_type": "financial", "published_at": "2026-08-21"}
+    ]
+  },
+  {
+    "id": "real_688981_20260913",
+    "subject_code": "688981",
+    "question": "截至2026年9月13日，查看中芯国际最近30天已保存的财务披露与新闻资料。",
+    "window_start": "2026-08-14",
+    "as_of_date": "2026-09-13",
+    "expected_sources": [
+      {"source_id": "stcn_news", "document_type": "news", "published_at": "2026-08-27"},
+      {"source_id": "cninfo_announcement", "document_type": "financial", "published_at": "2026-08-28"}
+    ]
+  }
+]

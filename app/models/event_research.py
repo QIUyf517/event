@@ -24,6 +24,10 @@ class EventResearchPlanStep(BaseModel):
     depends_on: list[str] = Field(default_factory=list)
     completion_condition: str
     failure_fallback: str
+    query: str = ""
+    selection_reason: str = ""
+    min_results: int = Field(default=1, ge=0, le=10)
+    on_failure: Literal["continue", "stop"] = "continue"
 
 
 class EventResearchPlan(BaseModel):
@@ -37,6 +41,8 @@ class EventResearchPlan(BaseModel):
     def validate_window_and_dependencies(self):
         if self.window_start > self.as_of_date:
             raise ValueError("研究窗口开始日期不能晚于截止日期")
+        if (self.as_of_date - self.window_start).days > 30:
+            raise ValueError("第一版研究窗口不能超过30天")
         step_ids = [step.step_id for step in self.steps]
         if len(step_ids) != len(set(step_ids)):
             raise ValueError("研究计划步骤ID必须唯一")
@@ -44,6 +50,22 @@ class EventResearchPlan(BaseModel):
         for step in self.steps:
             if step.step_id in step.depends_on or not set(step.depends_on) <= known:
                 raise ValueError("研究计划包含无效依赖")
+        dependencies = {step.step_id: step.depends_on for step in self.steps}
+        visiting, visited = set(), set()
+
+        def visit(step_id: str):
+            if step_id in visiting:
+                raise ValueError("研究计划包含循环依赖")
+            if step_id in visited:
+                return
+            visiting.add(step_id)
+            for dependency in dependencies[step_id]:
+                visit(dependency)
+            visiting.remove(step_id)
+            visited.add(step_id)
+
+        for step_id in step_ids:
+            visit(step_id)
         return self
 
 

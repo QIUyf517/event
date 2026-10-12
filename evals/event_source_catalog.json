@@ -1,6 +1,6 @@
 {
   "schema_version": "event-source-policy-v1",
-  "scope_note": "阶段一来源准入清单。仅定义允许进入后续采集与评测的来源类别，不代表已经采集、连通或核验了任何真实文章。",
+  "scope_note": "事件资料来源准入清单。verification_status逐项区分候选未验证来源、合成评测来源和阶段二已实际连通来源；单个来源已连通不代表全部历史资料均可稳定采集。",
   "sources": [
     {
       "source_id": "sse_announcement",
@@ -33,6 +33,14 @@
       "allowed_domains": ["smics.com"],
       "authority": "primary",
       "verification_status": "policy_candidate_unverified"
+    },
+    {
+      "source_id": "cninfo_announcement",
+      "name": "巨潮资讯公告",
+      "source_type": "announcement",
+      "allowed_domains": ["cninfo.com.cn"],
+      "authority": "primary",
+      "verification_status": "verified_live_2026-10-12"
     },
     {
       "source_id": "xinhua_news",

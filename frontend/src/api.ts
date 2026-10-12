@@ -1,5 +1,6 @@
 import type {
-  AlertRow, ArchiveItem, ComparisonRow, DataMode, Etf, MarketBar,
+  AlertRow, ArchiveItem, ComparisonRow, DataMode, Etf, EventMaterialType,
+  EventSearchResponse, EventSubjectsResponse, MarketBar,
   MonitorRun, ResearchMethod, ResearchResponse, SignalHistoryItem, SyncRun
 } from "./types";
 
@@ -38,6 +39,18 @@ async function request<T>(path: string, init?: RequestInit, write = false): Prom
 
 export const api = {
   etfs: () => request<Etf[]>(`${API_ROOT}/etfs`),
+  eventSubjects: () => request<EventSubjectsResponse>(`${API_ROOT}/event-research/subjects`),
+  searchEventMaterials: (filters: {
+    subjectId: string; startDate: string; endDate: string; query: string;
+    sourceTypes: EventMaterialType[];
+  }) => {
+    const params = new URLSearchParams({
+      subject_id: filters.subjectId, start_date: filters.startDate,
+      end_date: filters.endDate, query: filters.query
+    });
+    filters.sourceTypes.forEach((item) => params.append("source_types", item));
+    return request<EventSearchResponse>(`${API_ROOT}/event-research/search?${params}`);
+  },
   settings: () => request<{ default_etf: string; default_mode: DataMode; default_question: string }>(`${API_ROOT}/settings`),
   research: (payload: { question: string; etf_code: string; as_of_date: string; mode: DataMode; method: ResearchMethod }) =>
     request<ResearchResponse>(`${API_ROOT}/research`, { method: "POST", body: JSON.stringify(payload) }, true),
