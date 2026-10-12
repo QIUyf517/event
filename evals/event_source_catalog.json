@@ -1,0 +1,70 @@
+{
+  "schema_version": "event-source-policy-v1",
+  "scope_note": "阶段一来源准入清单。仅定义允许进入后续采集与评测的来源类别，不代表已经采集、连通或核验了任何真实文章。",
+  "sources": [
+    {
+      "source_id": "sse_announcement",
+      "name": "上海证券交易所公告",
+      "source_type": "announcement",
+      "allowed_domains": ["sse.com.cn"],
+      "authority": "primary",
+      "verification_status": "policy_candidate_unverified"
+    },
+    {
+      "source_id": "company_ir_600519",
+      "name": "贵州茅台公司投资者关系资料",
+      "source_type": "announcement",
+      "allowed_domains": ["moutaichina.com"],
+      "authority": "primary",
+      "verification_status": "policy_candidate_unverified"
+    },
+    {
+      "source_id": "company_ir_601318",
+      "name": "中国平安公司投资者关系资料",
+      "source_type": "announcement",
+      "allowed_domains": ["pingan.cn"],
+      "authority": "primary",
+      "verification_status": "policy_candidate_unverified"
+    },
+    {
+      "source_id": "company_ir_688981",
+      "name": "中芯国际公司投资者关系资料",
+      "source_type": "announcement",
+      "allowed_domains": ["smics.com"],
+      "authority": "primary",
+      "verification_status": "policy_candidate_unverified"
+    },
+    {
+      "source_id": "xinhua_news",
+      "name": "新华社新闻",
+      "source_type": "news",
+      "allowed_domains": ["news.cn", "xinhuanet.com"],
+      "authority": "secondary",
+      "verification_status": "policy_candidate_unverified"
+    },
+    {
+      "source_id": "stcn_news",
+      "name": "证券时报新闻",
+      "source_type": "news",
+      "allowed_domains": ["stcn.com"],
+      "authority": "secondary",
+      "verification_status": "policy_candidate_unverified"
+    },
+    {
+      "source_id": "cnstock_news",
+      "name": "上海证券报新闻",
+      "source_type": "news",
+      "allowed_domains": ["cnstock.com"],
+      "authority": "secondary",
+      "verification_status": "policy_candidate_unverified"
+    },
+    {
+      "source_id": "licensed_market_snapshot",
+      "name": "固定行情评测快照",
+      "source_type": "market",
+      "allowed_domains": ["example.invalid"],
+      "authority": "calculation_input",
+      "verification_status": "synthetic_fixture_only"
+    }
+  ]
+}
