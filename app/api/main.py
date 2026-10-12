@@ -1,4 +1,4 @@
-"""A股ETF研究助手的HTTP API。"""
+"""A股企业事件研究与ETF资金信号助手的HTTP API。"""
 
 from __future__ import annotations
 
@@ -77,8 +77,8 @@ class SyncRequest(BaseModel):
 def create_app(database_resolver: Callable[[str], Path] = database_path_for_mode,
                write_key: str | None = API_WRITE_KEY, settings_path: Path | None = None,
                event_database_path: Path | None = None) -> FastAPI:
-    api = FastAPI(title="A股ETF公开资料与资金信号研究助手 API", version=APP_VERSION,
-        description="提供可核验的ETF信号、研究报告、存档、PDF和监控状态。写接口需要X-API-Key。")
+    api = FastAPI(title="A股企业事件研究与ETF资金信号助手 API", version=APP_VERSION,
+        description="提供企业事件资料检索与有边界的模型规划，以及可核验的ETF信号、报告和监控状态。受保护接口需要X-API-Key。")
     if API_CORS_ORIGINS:
         api.add_middleware(CORSMiddleware, allow_origins=list(API_CORS_ORIGINS),
             allow_credentials=False, allow_methods=["GET", "POST", "PUT"], allow_headers=["*"])

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "a-share-etf-research-agent"
 version = "0.2.0"
-description = "A股ETF公开资料与资金信号研究助手"
+description = "A股企业事件研究与ETF资金信号助手"
 requires-python = ">=3.10"
 dependencies = [
   "numpy==1.26.4",
