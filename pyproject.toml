@@ -3,21 +3,17 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "a-share-etf-research-agent"
-version = "0.2.0"
-description = "A股企业事件研究与ETF资金信号助手"
+name = "a-share-event-research"
+version = "0.3.0"
+description = "大模型驱动的A股企业事件研究系统"
 requires-python = ">=3.10"
 dependencies = [
-  "numpy==1.26.4",
-  "pandas==2.2.3",
   "pydantic==2.12.5",
-  "streamlit==1.64.0",
   "requests==2.32.5",
   "beautifulsoup4==4.14.3",
   "pypdf==6.19.0",
   "fastapi==0.142.2",
   "uvicorn==0.54.0",
-  "reportlab==5.0.1",
 ]
 
 [project.optional-dependencies]
@@ -25,9 +21,8 @@ market = ["akshare==1.18.97"]
 dev = ["pytest==8.4.2", "httpx2==2.13.1"]
 
 [project.scripts]
-etf-research = "app.cli:main"
-etf-doctor = "app.doctor:main"
-etf-api = "app.api.main:run"
+event-research = "app.cli:main"
+event-research-api = "app.api.main:run"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

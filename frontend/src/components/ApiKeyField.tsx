@@ -15,7 +15,7 @@ export function ApiKeyField() {
         type="password"
         autoComplete="off"
         value={value}
-        placeholder="与 .env 中 ETF_API_WRITE_KEY 一致"
+        placeholder="输入本机访问密钥"
         onChange={(event) => { setValue(event.target.value); setSaved(false); }}
       />
       <button className="text-button" type="button" onClick={() => { storeApiKey(value.trim()); setSaved(Boolean(value.trim())); }}>

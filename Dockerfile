@@ -1,20 +1,24 @@
+FROM node:22-slim AS frontend
+WORKDIR /web
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    ETF_DATABASE_PATH=/app/data/etf_research.sqlite3 \
-    ETF_SETTINGS_DATABASE_PATH=/app/data/app_settings.sqlite3
+    EVENT_RESEARCH_DATABASE_PATH=/app/data/event_research.sqlite3 \
+    EVENT_GRAPH_DATABASE_PATH=/app/data/event_graph.sqlite3
 
 WORKDIR /app
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends fonts-noto-cjk fonts-wqy-microhei \
-    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.lock ./
 RUN python -m pip install --no-cache-dir -r requirements.lock
 
 COPY . .
+COPY --from=frontend /web/dist /app/frontend/dist
 RUN mkdir -p /app/data /app/output \
     && useradd --create-home --uid 10001 appuser \
     && chown -R appuser:appuser /app

@@ -114,7 +114,8 @@ def test_source_catalog_does_not_claim_real_collection_is_complete():
 
     assert len(sources) >= 8
     assert all(item["verification_status"] in {
-        "policy_candidate_unverified", "synthetic_fixture_only", "verified_live_2026-10-12"
+        "policy_candidate_unverified", "synthetic_fixture_only", "verified_live_2026-10-12",
+        "verified_live_2026-10-13"
     } for item in sources.values())
 
 

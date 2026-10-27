@@ -92,7 +92,7 @@ def test_failure_preserves_other_evidence_and_marks_partial(corpus):
 
 @pytest.mark.parametrize("mutate", [
     lambda plan: plan["steps"][0].update(tool="delete_database"),
-    lambda plan: plan.update(subject_code="510300"),
+    lambda plan: plan.update(subject_code="000000"),
     lambda plan: plan.update(as_of_date="2026-10-12"),
     lambda plan: plan["steps"].append(step("cycle", "search_news", depends_on=["cycle"])),
     lambda plan: (plan["steps"][0].update(depends_on=["second"]),
@@ -109,7 +109,7 @@ def test_scope_budget_and_model_switch_fail_closed(corpus):
     plan = {"steps": [step("first", "search_news")], "stop_condition": "停止"}
     agent = EventResearchOrchestrator(corpus, FakeLLM(plan))
     with pytest.raises(ValueError, match="研究对象"):
-        agent.run("查看资料", "510300", END, START)
+        agent.run("查看资料", "000000", END, START)
     with pytest.raises(ValueError, match="日期"):
         agent.run("查看资料", "600519", date.today() + timedelta(days=1), START)
     with pytest.raises(ValueError, match="Token"):
@@ -161,8 +161,7 @@ def test_api_plan_run_needs_key_and_keeps_real_and_synthetic_suites_separate(cor
             "question": question, "status": "evidence_collected"})
 
     monkeypatch.setattr(api_module.EventResearchOrchestrator, "run", fake_run)
-    with TestClient(create_app(event_database_path=corpus, write_key="test-secret",
-                               settings_path=tmp_path / "settings.sqlite3")) as client:
+    with TestClient(create_app(event_database_path=corpus, write_key="test-secret")) as client:
         payload = {"question": "查看资料", "subject_code": "600519",
                    "window_start": START.isoformat(), "as_of_date": END.isoformat()}
         assert client.post("/api/v1/event-research/plan-run", json=payload).status_code == 401

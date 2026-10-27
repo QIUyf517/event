@@ -31,8 +31,7 @@ def make_corpus(path):
 def test_web_search_filters_subject_dates_and_material_type_without_a_write_key(tmp_path):
     path = tmp_path / "events.sqlite3"
     make_corpus(path)
-    with TestClient(create_app(event_database_path=path, write_key="test-secret",
-                               settings_path=tmp_path / "settings.sqlite3")) as client:
+    with TestClient(create_app(event_database_path=path, write_key="test-secret")) as client:
         catalog = client.get("/api/v1/event-research/subjects")
         assert catalog.status_code == 200
         assert {item["subject_id"] for item in catalog.json()["subjects"]} == {
@@ -66,14 +65,13 @@ def test_web_search_filters_subject_dates_and_material_type_without_a_write_key(
             "subject_id": "600519", "start_date": "2026-08-31",
             "end_date": "2026-08-14", "query": "营业收入"}).status_code == 422
         assert client.get("/api/v1/event-research/search", params={
-            "subject_id": "510300", "start_date": "2026-08-14",
+            "subject_id": "000000", "start_date": "2026-08-14",
             "end_date": "2026-08-31", "query": "营业收入"}).status_code == 422
 
 
 def test_web_search_does_not_create_a_missing_event_database(tmp_path):
     missing = tmp_path / "missing.sqlite3"
-    with TestClient(create_app(event_database_path=missing,
-                               settings_path=tmp_path / "settings.sqlite3")) as client:
+    with TestClient(create_app(event_database_path=missing)) as client:
         response = client.get("/api/v1/event-research/subjects")
     assert response.status_code == 404
     assert not missing.exists()

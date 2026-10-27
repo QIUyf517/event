@@ -1,1 +1,1 @@
-"""研究报告导出。"""
+"""Public, evidence-bound research views."""

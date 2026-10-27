@@ -37,123 +37,109 @@ export interface EventSearchResponse {
   items: EventMaterialHit[];
 }
 
-export interface Etf {
-  etf_code: string;
-  name: string;
-}
-
-export interface AgentTrace {
-  agent: string;
-  status: string;
-  summary: string;
-  duration_ms: number;
-  error?: string | null;
-  evidence_refs?: string[];
-}
-
-export interface SourceExcerpt {
-  citation: string;
+export interface TimelineSource {
+  document_id: string;
+  source_id: string;
+  source_type: EventMaterialType;
   title: string;
-  content: string;
+  publisher: string;
   source_url: string;
   published_at: string;
-  source_category?: string;
+  reprint_of: string | null;
 }
 
-export interface TriggerDetail {
-  indicator: string;
-  value: number | null;
-  contribution: number;
-  reason: string;
+export interface TimelineCitation {
+  citation_id: string;
+  document_id: string;
+  chunk_id: string;
+  quote: string;
+  page: number | null;
+  location: string | null;
 }
 
-export interface ResearchReport {
-  question: string;
-  answer_status: string;
-  direct_answer: string;
-  research_method?: string;
-  data_mode: DataMode;
-  as_of_date: string;
-  data_cutoff_date?: string | null;
-  etf: { etf_code: string; name: string };
-  calculated_results: {
-    signal: string;
-    evidence_strength: string;
-    indicators: Record<string, number | null>;
-    source_dates: Record<string, string>;
-    trigger_details?: TriggerDetail[];
-  };
-  source_excerpts: SourceExcerpt[];
-  source_quotes?: string[];
-  execution_trace: AgentTrace[];
-  warnings: string[];
-  disclaimer: string;
+export interface TimelineClaim {
+  claim_id: string;
+  event_id: string;
+  citation_id: string;
+  attribute: string;
+  value_text: string | null;
+  qualifier?: string | null;
+  unit_context?: string | null;
+  numeric_status: "not_applicable" | "format_checked" | "calculation_mismatch";
+  calculation_note?: string | null;
+  text: string;
 }
 
-export interface ResearchResponse {
-  task_id: string;
-  report: ResearchReport;
+export interface TimelineConflict {
+  conflict_id: string;
+  event_id: string;
+  kind: "number" | "occurred_date" | "calculation";
+  attribute: string;
+  variants: string[];
+  claim_ids: string[];
 }
 
-export interface MarketBar {
-  trade_date: string;
-  close: number;
+export interface TimelineRelation {
+  relation_id: string;
+  event_id: string;
+  left_claim_id: string;
+  right_claim_id: string;
+  kind: "agreement" | "conflict" | "reprint" | "unresolved";
 }
 
-export interface ComparisonRow {
-  etf_code: string;
-  name: string;
-  signal: string;
-  indicators: Record<string, number | null>;
-  source_dates: Record<string, string>;
-  missing_fields: string[];
-}
-
-export interface ArchiveItem {
-  task_id: string;
-  created_at: string;
-  etf_code?: string;
-  etf_name?: string;
-  as_of_date?: string;
-  data_cutoff_date?: string;
-  question: string;
-  answer_status: string;
-}
-
-export interface MonitorRun {
-  run_id: string;
-  as_of_date: string;
-  started_at: string;
-  finished_at: string;
-  status: string;
-  etf_results: unknown[];
-  warnings: string[];
-}
-
-export interface SyncRun {
-  sync_id: string;
-  etf_code: string;
-  start_date: string;
-  end_date: string;
-  market_status: string;
-  share_status: string;
-  market_rows: number;
-  share_rows: number;
-  warnings: string[];
-}
-
-export interface AlertRow {
-  alert_id: string;
-  etf_code: string;
-  as_of_date: string;
-  severity: string;
+export interface TimelineEvent {
+  event_id: string;
   title: string;
-  message: string;
+  occurred_at: string | null;
+  date_status: "known" | "unknown" | "conflict";
+  reported_at: string;
+  importance: "high" | "medium" | "low";
+  claim_ids: string[];
+  document_ids: string[];
+  conflict_ids: string[];
 }
 
-export interface SignalHistoryItem {
+export interface EventGraph {
+  run_id: string;
+  question: string;
+  subject_code: string;
+  subject_name: string;
+  window_start: string;
   as_of_date: string;
-  signal: string;
-  source_dates: Record<string, string>;
-  missing_fields: string[];
+  status: "extracted" | "partial" | "insufficient_evidence";
+  model: string;
+  planning_tokens: number;
+  extraction_tokens: number;
+  estimated_cost_usd: number;
+  sources: TimelineSource[];
+  citations: TimelineCitation[];
+  claims: TimelineClaim[];
+  events: TimelineEvent[];
+  conflicts: TimelineConflict[];
+  relations: TimelineRelation[];
+  warnings: string[];
+}
+
+export interface ResearchRun {
+  demo?: boolean;
+  run_id: string; question: string; subject_code: string; window_start: string; as_of_date: string;
+  status: string; elapsed_seconds: number; total_tokens: number; estimated_cost_usd: number; stop_reason: string;
+  stages: { key: string; label: string; status: string; elapsed_seconds: number }[];
+  planning: null | {
+    model: string; stop_reason: string;
+    plan: { steps: { step_id: string; objective: string; tool: string; depends_on: string[]; selection_reason: string }[] };
+    execution_trace: { step_id: string; status: string; started_at: string; finished_at: string;
+      tool_calls: string[]; evidence_ids: string[]; stop_reason: string; error: string | null }[];
+  };
+  graph: EventGraph | null;
+  debate: null | {
+    publication_mode: string;
+    hypotheses: { hypothesis_id: string; statement: string; interpretation_kind?: "event_candidate" | "industry_factor" | "market_factor" | "evidence_gap" | null;
+      support_claim_ids: string[]; counter_claim_ids: string[];
+      missing_evidence: string[]; alternative_explanations: string[]; assessment: string }[];
+    findings: { hypothesis_id: string; kind: string; detail: string; claim_ids: string[]; hit_chunk_ids: string[] }[];
+    search_checks: { query: string; hits: { chunk_id: string; title: string; excerpt: string; published_at: string }[] }[];
+    conclusion: { text: string; answer_status: string; limitations: string[] };
+    quality_issues: string[];
+  };
 }

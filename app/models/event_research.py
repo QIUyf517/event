@@ -12,6 +12,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.models.event_graph import EventGraphRun
+
 
 ResearchAnswerStatus = Literal["answered", "partial", "insufficient_evidence", "unsupported"]
 EvidenceStance = Literal["supports", "opposes", "context"]
@@ -181,4 +183,100 @@ class EventResearchReport(BaseModel):
                 raise ValueError("假设引用了不存在的证据")
         if not set(self.final_judgement.supported_claim_ids) <= claim_set:
             raise ValueError("最终判断引用了不存在的主张")
+        return self
+
+
+class DebateHypothesis(BaseModel):
+    hypothesis_id: str
+    statement: str = Field(min_length=1, max_length=350)
+    interpretation_kind: Literal["event_candidate", "industry_factor", "market_factor", "evidence_gap"] | None = None
+    alternative_kinds: list[Literal["other_company_event", "industry_factor", "market_factor", "unknown"]] = Field(default_factory=list)
+    support_claim_ids: list[str] = Field(default_factory=list)
+    counter_claim_ids: list[str] = Field(default_factory=list)
+    missing_evidence: list[str] = Field(default_factory=list)
+    alternative_explanations: list[str] = Field(default_factory=list)
+    assessment: Literal["evidence_strong", "associated", "insufficient", "cannot_judge"]
+
+
+class DebateSearchHit(BaseModel):
+    chunk_id: str
+    document_id: str
+    source_id: str
+    title: str
+    published_at: date
+    excerpt: str
+
+
+class DebateSearchCheck(BaseModel):
+    query: str
+    hits: list[DebateSearchHit] = Field(default_factory=list)
+
+
+class DebateFinding(BaseModel):
+    hypothesis_id: str
+    kind: Literal["chronology", "contradiction", "source_dependence", "omission",
+                  "scope", "alternative", "unresolved"]
+    detail: str = Field(min_length=1, max_length=500)
+    claim_ids: list[str] = Field(default_factory=list)
+    hit_chunk_ids: list[str] = Field(default_factory=list)
+
+
+class DebateConclusion(BaseModel):
+    level: Literal["evidence_strong", "associated", "insufficient", "cannot_judge"]
+    answer_status: ResearchAnswerStatus
+    text: str
+    selected_hypothesis_id: str | None = None
+    limitations: list[str] = Field(default_factory=list)
+    reason_codes: list[Literal["date_unknown", "numeric_conflict", "source_dependence", "market_missing", "counter_unresolved", "other"]] = Field(default_factory=list)
+
+
+class EventDebateRun(BaseModel):
+    schema_version: Literal["event-debate-v1"] = "event-debate-v1"
+    run_id: str
+    graph_run_id: str
+    graph: EventGraphRun
+    source_database_sha256: str = ""
+    created_at: datetime
+    model: str
+    model_tokens: int = Field(ge=0)
+    estimated_cost_usd: float = Field(ge=0)
+    stop_reason: str
+    hypotheses: list[DebateHypothesis] = Field(default_factory=list, max_length=3)
+    search_checks: list[DebateSearchCheck] = Field(default_factory=list, max_length=3)
+    findings: list[DebateFinding] = Field(default_factory=list)
+    conclusion: DebateConclusion
+    quality_issues: list[str] = Field(default_factory=list)
+    report_draft: str = ""
+    interpretation_schema: Literal["legacy_free_text", "typed_selection_v1"] = "legacy_free_text"
+
+    @model_validator(mode="after")
+    def validate_debate_references(self):
+        if self.graph_run_id != self.graph.run_id:
+            raise ValueError("研究报告引用了其他图谱运行")
+        claim_ids = {item.claim_id for item in self.graph.claims}
+        hypothesis_ids = [item.hypothesis_id for item in self.hypotheses]
+        if len(hypothesis_ids) != len(set(hypothesis_ids)):
+            raise ValueError("候选解释编号重复")
+        hit_ids = {hit.chunk_id for check in self.search_checks for hit in check.hits}
+        for hypothesis in self.hypotheses:
+            if not set(hypothesis.support_claim_ids + hypothesis.counter_claim_ids) <= claim_ids:
+                raise ValueError("候选解释引用了当前图谱之外的主张")
+        for finding in self.findings:
+            if finding.hypothesis_id not in hypothesis_ids:
+                raise ValueError("反方意见引用了不存在的解释")
+            if not set(finding.claim_ids) <= claim_ids or not set(finding.hit_chunk_ids) <= hit_ids:
+                raise ValueError("反方意见引用了未经保存的证据")
+        if (self.conclusion.selected_hypothesis_id is not None
+                and self.conclusion.selected_hypothesis_id not in hypothesis_ids):
+            raise ValueError("最终判断引用了不存在的解释")
+        for check in self.search_checks:
+            if any(not self.graph.window_start <= hit.published_at <= self.graph.as_of_date
+                   for hit in check.hits):
+                raise ValueError("反方检索包含截止日之外的资料")
+        if self.interpretation_schema == "typed_selection_v1":
+            if any(h.interpretation_kind is None for h in self.hypotheses):
+                raise ValueError("结构化解释缺少候选类型")
+            if any(h.interpretation_kind == "event_candidate" and not h.support_claim_ids
+                   for h in self.hypotheses):
+                raise ValueError("事件候选必须有图谱支持主张")
         return self

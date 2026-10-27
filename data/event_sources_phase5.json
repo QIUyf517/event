@@ -1,0 +1,37 @@
+{
+  "schema_version": "event-source-manifest-v1",
+  "window_start": "2026-08-14",
+  "as_of_date": "2026-09-13",
+  "items": [
+    {
+      "subject_id": "600519",
+      "source_id": "company_ir_600519",
+      "url": "https://www.moutaichina.com/mtgf/articleFileDir/2026-08/17/b2229e459e26426d8dafe1f47c444202.pdf",
+      "title": "贵州茅台第五届董事会2026年度第三次会议决议公告",
+      "publisher": "贵州茅台酒股份有限公司",
+      "published_at": "2026-08-15",
+      "material_type": "announcement",
+      "date_marker": "2026年8月13日"
+    },
+    {
+      "subject_id": "601318",
+      "source_id": "cninfo_announcement",
+      "url": "https://static.cninfo.com.cn/finalpage/2026-08-21/1225487474.PDF",
+      "title": "中国平安第十三届董事会第十五次会议决议公告",
+      "publisher": "中国平安保险（集团）股份有限公司",
+      "published_at": "2026-08-21",
+      "material_type": "announcement",
+      "date_marker": "2026年8月20日"
+    },
+    {
+      "subject_id": "688981",
+      "source_id": "cninfo_announcement",
+      "url": "https://static.cninfo.com.cn/finalpage/2026-09-08/1225552083.PDF",
+      "title": "中芯国际预留授予部分第四个归属期归属结果暨股份上市公告",
+      "publisher": "中芯国际集成电路制造有限公司",
+      "published_at": "2026-09-08",
+      "material_type": "announcement",
+      "date_marker": "2026年9月7日"
+    }
+  ]
+}

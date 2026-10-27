@@ -1,0 +1,1153 @@
+{
+  "schema_version": "phase45-gold-v1",
+  "source_database_sha256": "c7d3621343756af4f895831417771f40df4521bb79f472f033d67d00c49bcfe5",
+  "scope": "三家公司九份固定历史快照；逐项核对v4图谱，来源引文从保存原文回填。此底稿不是实时市场事实。",
+  "cases": {
+    "moutai": {
+      "subject_code": "600519",
+      "window_start": "2026-08-13",
+      "as_of_date": "2026-09-12",
+      "reviewed_events": [
+        {
+          "baseline_event_id": "event-2ac989a9445d0855cf48",
+          "baseline_title": "第五届董事会2026年度第三次会议召开",
+          "verdict": "keep",
+          "review_note": "董事会公告明确载明会议在8月13日召开。",
+          "baseline_date": "2026-08-13",
+          "source_document_id": "600519-c22571b28d92addc54fe",
+          "source_chunk_id": "600519-c22571b28d92addc54fe-p1-c1",
+          "source_quote": "2026 年 8 月 13 日，会议以现场结合\n通讯表决方式在公司会议中心召开。",
+          "baseline_facts": [
+            {
+              "attribute": "会议召开日期",
+              "value_text": null,
+              "quote": "2026 年 8 月 13 日，会议以现场结合\n通讯表决方式在公司会议中心召开。",
+              "document_id": "600519-c22571b28d92addc54fe"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-ed1837cb07ebddb63a3d",
+          "baseline_title": "贵州茅台2026年上半年业绩披露",
+          "verdict": "keep",
+          "review_note": "半年报和报道的期间财务事实归入一个披露事件；披露时刻尚未由报告正文证明。",
+          "baseline_date": null,
+          "source_document_id": "600519-0e10aa26be46b1cf3cd0",
+          "source_chunk_id": "600519-0e10aa26be46b1cf3cd0-p5-c1",
+          "source_quote": "单位：元 币种：人民币\n主要会计数据 本报告期\n（1－6月） 上年同期\n本报告期比\n上年同期增\n减(%)\n营业收入 90,703,260,964.48 89,389,354,416.84 1.47",
+          "baseline_facts": [
+            {
+              "attribute": "营业收入",
+              "value_text": "90,703,260,964.48",
+              "quote": "单位：元 币种：人民币\n主要会计数据 本报告期\n（1－6月） 上年同期\n本报告期比\n上年同期增\n减(%)\n营业收入 90,703,260,964.48 89,389,354,416.84 1.47",
+              "document_id": "600519-0e10aa26be46b1cf3cd0"
+            },
+            {
+              "attribute": "利润总额",
+              "value_text": "61,438,419,177.29",
+              "quote": "单位：元 币种：人民币\n主要会计数据 本报告期\n（1－6月） 上年同期\n本报告期比\n上年同期增\n减(%)\n营业收入 90,703,260,964.48 89,389,354,416.84 1.47\n利润总额 61,438,419,177.29 62,778,000,766.82 -2.13",
+              "document_id": "600519-0e10aa26be46b1cf3cd0"
+            },
+            {
+              "attribute": "归属于上市公司股东的净利润",
+              "value_text": "44,516,880,421.86",
+              "quote": "单位：元 币种：人民币\n主要会计数据 本报告期\n（1－6月） 上年同期\n本报告期比\n上年同期增\n减(%)\n营业收入 90,703,260,964.48 89,389,354,416.84 1.47\n利润总额 61,438,419,177.29 62,778,000,766.82 -2.13\n归属于上市公司股东的净利润 44,516,880,421.86 45,402,962,298.10 -1.95",
+              "document_id": "600519-0e10aa26be46b1cf3cd0"
+            },
+            {
+              "attribute": "经营活动产生的现金流量净额",
+              "value_text": "70,690,750,119.06",
+              "quote": "经营活动产生的现金流量净额 70,690,750,119.06 13,119,061,031.33 438.84",
+              "document_id": "600519-0e10aa26be46b1cf3cd0"
+            },
+            {
+              "attribute": "期末总股本",
+              "value_text": "1,250,081,601.00",
+              "quote": "期末总股本 1,250,081,601.00 1,252,270,215.00 -0.17",
+              "document_id": "600519-0e10aa26be46b1cf3cd0"
+            },
+            {
+              "attribute": "基本每股收益",
+              "value_text": "35.57",
+              "quote": "基本每股收益（元／股） 35.57 36.18 -1.68",
+              "document_id": "600519-0e10aa26be46b1cf3cd0"
+            },
+            {
+              "attribute": "营业总收入",
+              "value_text": "922.78亿元",
+              "quote": "8月14日晚间，贵州茅台(600519)发布2026年半年报，报告期内，该上市公司实现营业总收入922.78亿元，同比增长1.3%；实现净利润445.17亿元，同比下降1.95%；扣非后净利润为444.6亿元，同比下降2.04%；上半年，茅台酒、系列酒分别实现基酒产量4.1万吨、3.1万吨。",
+              "document_id": "600519-58ba6807532c20dab347"
+            },
+            {
+              "attribute": "净利润",
+              "value_text": "445.17亿元",
+              "quote": "8月14日晚间，贵州茅台(600519)发布2026年半年报，报告期内，该上市公司实现营业总收入922.78亿元，同比增长1.3%；实现净利润445.17亿元，同比下降1.95%；扣非后净利润为444.6亿元，同比下降2.04%；上半年，茅台酒、系列酒分别实现基酒产量4.1万吨、3.1万吨。",
+              "document_id": "600519-58ba6807532c20dab347"
+            },
+            {
+              "attribute": "扣非后净利润",
+              "value_text": "444.6亿元",
+              "quote": "8月14日晚间，贵州茅台(600519)发布2026年半年报，报告期内，该上市公司实现营业总收入922.78亿元，同比增长1.3%；实现净利润445.17亿元，同比下降1.95%；扣非后净利润为444.6亿元，同比下降2.04%；上半年，茅台酒、系列酒分别实现基酒产量4.1万吨、3.1万吨。",
+              "document_id": "600519-58ba6807532c20dab347"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-5db4b3029d739362ad3d",
+          "baseline_title": "贵州茅台2026年第二季度业绩披露",
+          "verdict": "keep",
+          "review_note": "媒体二季度推算值单列并保留172.1与172.77亿元的算术待核实标记。",
+          "baseline_date": null,
+          "source_document_id": "600519-58ba6807532c20dab347",
+          "source_chunk_id": "600519-58ba6807532c20dab347-para-13",
+          "source_quote": "分单季度来看，今年一季报，贵州茅台实现净利润272.4亿元，以此数据计算，贵州茅台第二季度为172.1亿元，环比下降36.82%，同比下降约7.2%。",
+          "baseline_facts": [
+            {
+              "attribute": "第二季度净利润",
+              "value_text": "172.1亿元",
+              "quote": "分单季度来看，今年一季报，贵州茅台实现净利润272.4亿元，以此数据计算，贵州茅台第二季度为172.1亿元，环比下降36.82%，同比下降约7.2%。",
+              "document_id": "600519-58ba6807532c20dab347"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-6955d32f856f55228794",
+          "baseline_title": "以无偿划转方式划转i茅台数字营销平台相关信息系统及域名至数科公司",
+          "verdict": "rename",
+          "review_note": "公告是董事会决定划转，不能写成资产已经划转完成。",
+          "baseline_date": null,
+          "source_document_id": "600519-c22571b28d92addc54fe",
+          "source_chunk_id": "600519-c22571b28d92addc54fe-p2-c1",
+          "source_quote": "会议决定，公司以无偿划转方式，向公司全资子公司贵州爱茅台数字\n科技有限公司（以下简称“数科公司”）划转 i 茅台数字营销平台相关信息\n系统及域名等，在授权范围内向数科公司转授权使用“MOUTAI”等商标。",
+          "baseline_facts": [
+            {
+              "attribute": "资产划转方式与标的",
+              "value_text": null,
+              "quote": "会议决定，公司以无偿划转方式，向公司全资子公司贵州爱茅台数字\n科技有限公司（以下简称“数科公司”）划转 i 茅台数字营销平台相关信息\n系统及域名等，在授权范围内向数科公司转授权使用“MOUTAI”等商标。",
+              "document_id": "600519-c22571b28d92addc54fe"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-e776686061fc4b6e0dd6",
+          "baseline_title": "审议通过《2026年半年度报告》议案",
+          "verdict": "keep",
+          "review_note": "董事会议案有原文；独立执行日期未见。",
+          "baseline_date": null,
+          "source_document_id": "600519-c22571b28d92addc54fe",
+          "source_chunk_id": "600519-c22571b28d92addc54fe-p1-c1",
+          "source_quote": "（ 一 ）《 2026 年 半 年 度 报 告 》（ 详 见 上 海 证 券 交 易 所 网 站\nhttp://www.sse.com.cn）\n同意：7 票；反对：0 票；弃权：0 票。议案获得通过。",
+          "baseline_facts": [
+            {
+              "attribute": "董事会审议表决结果",
+              "value_text": "7",
+              "quote": "（ 一 ）《 2026 年 半 年 度 报 告 》（ 详 见 上 海 证 券 交 易 所 网 站\nhttp://www.sse.com.cn）\n同意：7 票；反对：0 票；弃权：0 票。议案获得通过。",
+              "document_id": "600519-c22571b28d92addc54fe"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-afbe447906fa914057a2",
+          "baseline_title": "审议通过《2026年度“提质增效重回报”行动方案半年度评估报告》议案",
+          "verdict": "keep",
+          "review_note": "董事会议案有原文；独立执行日期未见。",
+          "baseline_date": null,
+          "source_document_id": "600519-c22571b28d92addc54fe",
+          "source_chunk_id": "600519-c22571b28d92addc54fe-p2-c1",
+          "source_quote": "（三）《2026 年度“提质增效重回报”行动方案半年度评估报告》\n同意：7 票；反对：0 票；弃权：0 票。议案获得通过。",
+          "baseline_facts": [
+            {
+              "attribute": "董事会审议表决结果",
+              "value_text": "7",
+              "quote": "（三）《2026 年度“提质增效重回报”行动方案半年度评估报告》\n同意：7 票；反对：0 票；弃权：0 票。议案获得通过。",
+              "document_id": "600519-c22571b28d92addc54fe"
+            }
+          ]
+        }
+      ],
+      "expected_final": {
+        "event_count": 6,
+        "known_dates": {
+          "第五届董事会2026年度第三次会议召开": "2026-08-13"
+        },
+        "required_titles": [
+          "董事会决定划转i茅台平台信息系统及域名"
+        ],
+        "required_values": [
+          "172.1亿元",
+          "44,516,880,421.86"
+        ],
+        "minimum_conflicts": 1
+      }
+    },
+    "pingan": {
+      "subject_code": "601318",
+      "window_start": "2026-08-13",
+      "as_of_date": "2026-09-12",
+      "reviewed_events": [
+        {
+          "baseline_event_id": "event-64a41ec47e6f61c200dc",
+          "baseline_title": "第十三届董事会第十五次会议召开",
+          "verdict": "keep",
+          "review_note": "董事会公告明确载明8月20日会议召开。",
+          "baseline_date": "2026-08-20",
+          "source_document_id": "601318-0be62981986771b5c5e1",
+          "source_chunk_id": "601318-0be62981986771b5c5e1-p1-c1",
+          "source_quote": "会议于 2026 年 8 月 20 日在深圳市召开。",
+          "baseline_facts": [
+            {
+              "attribute": "会议召开",
+              "value_text": null,
+              "quote": "会议于 2026 年 8 月 20 日在深圳市召开。",
+              "document_id": "601318-0be62981986771b5c5e1"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-d855e5f0fe780c9e0acd",
+          "baseline_title": "中国平安2026年上半年业绩披露",
+          "verdict": "fix_date",
+          "review_note": "公司业绩通稿正文明确写8月20日公布中期业绩；数据库发布日期8月21日另计。",
+          "baseline_date": null,
+          "source_document_id": "601318-70fac1e56ce8b4524d78",
+          "source_chunk_id": "601318-70fac1e56ce8b4524d78-para-49",
+          "source_quote": "实现营业收入5,751.38亿元，同比增长15.0%",
+          "baseline_facts": [
+            {
+              "attribute": "营业收入",
+              "value_text": "5,751.38亿元",
+              "quote": "实现营业收入5,751.38亿元，同比增长15.0%",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            },
+            {
+              "attribute": "归属于母公司股东的营运利润",
+              "value_text": "841.96亿元",
+              "quote": "实现归属于母公司股东的营运利润841.96亿元，同比增长8.3%",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            },
+            {
+              "attribute": "归属于母公司股东的净利润",
+              "value_text": "925.85亿元",
+              "quote": "归属于母公司股东的净利润925.85亿元，同比大幅增长36.1%",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            },
+            {
+              "attribute": "归属于母公司股东权益",
+              "value_text": "10,280.84亿元",
+              "quote": "归属于母公司股东权益10,280.84亿元，较年初增长2.8%",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            },
+            {
+              "attribute": "健康险保费收入",
+              "value_text": "887亿元",
+              "quote": "平安实现健康险保费收入887亿元",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            },
+            {
+              "attribute": "医疗险保费收入",
+              "value_text": "430亿元",
+              "quote": "其中医疗险保费收入超430亿元，同比增长4.9%",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            },
+            {
+              "attribute": "归属于母公司股东的净利润",
+              "value_text": "925.85亿元",
+              "quote": "2026年上半年，公司实现归属于母公司股东的营运利润841.96亿元，同比增长8.3%；归属于母公司股东的净利润925.85亿元，同比大幅增长36.1%；归属于母公司股东权益约1.03万亿元，较年初增长2.8%。",
+              "document_id": "601318-8db0d79be1facd24e545"
+            },
+            {
+              "attribute": "归属于母公司股东的营运利润",
+              "value_text": "841.96亿元",
+              "quote": "2026年上半年，公司实现归属于母公司股东的营运利润841.96亿元，同比增长8.3%；归属于母公司股东的净利润925.85亿元，同比大幅增长36.1%；归属于母公司股东权益约1.03万亿元，较年初增长2.8%。",
+              "document_id": "601318-8db0d79be1facd24e545"
+            },
+            {
+              "attribute": "归属于母公司股东权益",
+              "value_text": "1.03万亿元",
+              "quote": "2026年上半年，公司实现归属于母公司股东的营运利润841.96亿元，同比增长8.3%；归属于母公司股东的净利润925.85亿元，同比大幅增长36.1%；归属于母公司股东权益约1.03万亿元，较年初增长2.8%。",
+              "document_id": "601318-8db0d79be1facd24e545"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-4bfd7756f647be1a3707",
+          "baseline_title": "中国平安AI医生使用情况",
+          "verdict": "merge",
+          "review_note": "上半年经营指标，应并入公司上半年业绩披露事件的事实主张。",
+          "baseline_date": null,
+          "source_document_id": "601318-70fac1e56ce8b4524d78",
+          "source_chunk_id": "601318-70fac1e56ce8b4524d78-para-59",
+          "source_quote": "2026年上半年AI医生使用人数超970万，精准诊断覆盖疾病超1.13万种，辅助诊疗准确率96%",
+          "baseline_facts": [
+            {
+              "attribute": "AI医生使用人数",
+              "value_text": "970万",
+              "quote": "2026年上半年AI医生使用人数超970万，精准诊断覆盖疾病超1.13万种，辅助诊疗准确率96%",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-9d51f5170aa77a425f41",
+          "baseline_title": "中国平安AI查问办业务场景覆盖",
+          "verdict": "merge",
+          "review_note": "上半年经营指标，应并入公司上半年业绩披露事件的事实主张。",
+          "baseline_date": null,
+          "source_document_id": "601318-70fac1e56ce8b4524d78",
+          "source_chunk_id": "601318-70fac1e56ce8b4524d78-para-49",
+          "source_quote": "AI查问办覆盖集团88%的业务场景",
+          "baseline_facts": [
+            {
+              "attribute": "AI查问办覆盖业务场景比例",
+              "value_text": "88%",
+              "quote": "AI查问办覆盖集团88%的业务场景",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-8f5df64c2b831cf04e1e",
+          "baseline_title": "中国平安中期股息派发",
+          "verdict": "rename",
+          "review_note": "通稿说将派发中期股息，不能写成已派发。",
+          "baseline_date": null,
+          "source_document_id": "601318-70fac1e56ce8b4524d78",
+          "source_chunk_id": "601318-70fac1e56ce8b4524d78-para-49",
+          "source_quote": "将向股东派发中期股息每股现金人民币0.98元，同比增长3.2%",
+          "baseline_facts": [
+            {
+              "attribute": "中期股息每股现金",
+              "value_text": "0.98元",
+              "quote": "将向股东派发中期股息每股现金人民币0.98元，同比增长3.2%",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-4ffd947d6c568101de7d",
+          "baseline_title": "中国平安享有医疗健康权益客户寿险新单件均首年保费",
+          "verdict": "merge",
+          "review_note": "上半年经营指标，应并入公司上半年业绩披露事件的事实主张。",
+          "baseline_date": null,
+          "source_document_id": "601318-70fac1e56ce8b4524d78",
+          "source_chunk_id": "601318-70fac1e56ce8b4524d78-para-59",
+          "source_quote": "享有医疗健康权益客户寿险新单件均首年保费提升至2.6倍",
+          "baseline_facts": [
+            {
+              "attribute": "享有医疗健康权益客户寿险新单件均首年保费提升",
+              "value_text": "2.6倍",
+              "quote": "享有医疗健康权益客户寿险新单件均首年保费提升至2.6倍",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-9540a4b94eac6f1d6b5d",
+          "baseline_title": "中国平安全球急难救援服务申请量",
+          "verdict": "merge",
+          "review_note": "上半年经营指标，应并入公司上半年业绩披露事件的事实主张。",
+          "baseline_date": null,
+          "source_document_id": "601318-70fac1e56ce8b4524d78",
+          "source_chunk_id": "601318-70fac1e56ce8b4524d78-para-49",
+          "source_quote": "上半年救援服务申请超1,500笔",
+          "baseline_facts": [
+            {
+              "attribute": "救援服务申请量",
+              "value_text": "1,500",
+              "quote": "上半年救援服务申请超1,500笔",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-e60cdb0651e0e1228b31",
+          "baseline_title": "中国平安医养服务客户加保率提升",
+          "verdict": "merge",
+          "review_note": "上半年经营指标，应并入公司上半年业绩披露事件的事实主张。",
+          "baseline_date": null,
+          "source_document_id": "601318-70fac1e56ce8b4524d78",
+          "source_chunk_id": "601318-70fac1e56ce8b4524d78-para-59",
+          "source_quote": "使用医养服务客户加保率提升5.9个百分点",
+          "baseline_facts": [
+            {
+              "attribute": "使用医养服务客户加保率提升",
+              "value_text": "5.9",
+              "quote": "使用医养服务客户加保率提升5.9个百分点",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-7837a23ad3279feee1c0",
+          "baseline_title": "中国平安寿险使用医疗养老服务客户数",
+          "verdict": "merge",
+          "review_note": "上半年经营指标，应并入公司上半年业绩披露事件的事实主张。",
+          "baseline_date": null,
+          "source_document_id": "601318-70fac1e56ce8b4524d78",
+          "source_chunk_id": "601318-70fac1e56ce8b4524d78-para-59",
+          "source_quote": "平安寿险使用医疗养老服务客户数1,151万人",
+          "baseline_facts": [
+            {
+              "attribute": "使用医疗养老服务客户数",
+              "value_text": "1,151万",
+              "quote": "平安寿险使用医疗养老服务客户数1,151万人",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-98da5fbb9872f959eada",
+          "baseline_title": "中国平安日均Token消耗量",
+          "verdict": "merge",
+          "review_note": "上半年经营指标，应并入公司上半年业绩披露事件的事实主张。",
+          "baseline_date": null,
+          "source_document_id": "601318-70fac1e56ce8b4524d78",
+          "source_chunk_id": "601318-70fac1e56ce8b4524d78-para-49",
+          "source_quote": "2026年6月日均Token（词元）消耗量超1,200亿",
+          "baseline_facts": [
+            {
+              "attribute": "日均Token消耗量",
+              "value_text": "1,200亿",
+              "quote": "2026年6月日均Token（词元）消耗量超1,200亿",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-f74870ea2238876db50b",
+          "baseline_title": "北大医疗集团2026年上半年业绩披露",
+          "verdict": "keep",
+          "review_note": "北大医疗集团的上半年经营数据，保持子公司口径。",
+          "baseline_date": null,
+          "source_document_id": "601318-70fac1e56ce8b4524d78",
+          "source_chunk_id": "601318-70fac1e56ce8b4524d78-para-59",
+          "source_quote": "北大医疗集团营业收入28亿元",
+          "baseline_facts": [
+            {
+              "attribute": "营业收入",
+              "value_text": "28亿元",
+              "quote": "北大医疗集团营业收入28亿元",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-5033871973316b8e37a8",
+          "baseline_title": "平安健康2026年上半年业绩披露",
+          "verdict": "keep",
+          "review_note": "平安健康的上半年经营数据，保持子公司口径。",
+          "baseline_date": null,
+          "source_document_id": "601318-70fac1e56ce8b4524d78",
+          "source_chunk_id": "601318-70fac1e56ce8b4524d78-para-59",
+          "source_quote": "平安健康营业收入24.84亿元",
+          "baseline_facts": [
+            {
+              "attribute": "营业收入",
+              "value_text": "24.84亿元",
+              "quote": "平安健康营业收入24.84亿元",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-720c155b6c06dde7fa71",
+          "baseline_title": "平安寿险2026年上半年业绩披露",
+          "verdict": "keep",
+          "review_note": "平安寿险的上半年经营数据，保持子公司口径。",
+          "baseline_date": null,
+          "source_document_id": "601318-70fac1e56ce8b4524d78",
+          "source_chunk_id": "601318-70fac1e56ce8b4524d78-para-49",
+          "source_quote": "新业务价值达成248.47亿元，同比增长11.2%",
+          "baseline_facts": [
+            {
+              "attribute": "新业务价值",
+              "value_text": "248.47亿元",
+              "quote": "新业务价值达成248.47亿元，同比增长11.2%",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-183f7526fa118498137c",
+          "baseline_title": "平安银行2026年6月末业绩披露",
+          "verdict": "keep",
+          "review_note": "平安银行6月末存量指标，保持子公司和时点口径。",
+          "baseline_date": null,
+          "source_document_id": "601318-70fac1e56ce8b4524d78",
+          "source_chunk_id": "601318-70fac1e56ce8b4524d78-para-56",
+          "source_quote": "截至2026年6月末，不良贷款率1.05%，与年初持平",
+          "baseline_facts": [
+            {
+              "attribute": "不良贷款率",
+              "value_text": "1.05%",
+              "quote": "截至2026年6月末，不良贷款率1.05%，与年初持平",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            },
+            {
+              "attribute": "拨备覆盖率",
+              "value_text": "219.58%",
+              "quote": "拨备覆盖率219.58%，风险抵补能力保持良好",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            },
+            {
+              "attribute": "管理零售客户资产(AUM)",
+              "value_text": "44,002.27亿元",
+              "quote": "管理零售客户资产(AUM)44,002.27亿元，较年初增长3.8%",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-09f47f06ab91e349e097",
+          "baseline_title": "平安银行2026年上半年业绩披露",
+          "verdict": "keep",
+          "review_note": "平安银行上半年经营数据，保持子公司口径。",
+          "baseline_date": null,
+          "source_document_id": "601318-70fac1e56ce8b4524d78",
+          "source_chunk_id": "601318-70fac1e56ce8b4524d78-para-56",
+          "source_quote": "实现营业收入706.17亿元，同比增长1.8%",
+          "baseline_facts": [
+            {
+              "attribute": "营业收入",
+              "value_text": "706.17亿元",
+              "quote": "实现营业收入706.17亿元，同比增长1.8%",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            },
+            {
+              "attribute": "净利润",
+              "value_text": "256.96亿元",
+              "quote": "实现净利润256.96亿元，同比增长3.3%",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            },
+            {
+              "attribute": "个人存款平均付息率",
+              "value_text": "1.52%",
+              "quote": "2026年上半年个人存款平均付息率同比下降40个基点至1.52%",
+              "document_id": "601318-70fac1e56ce8b4524d78"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-a3e371a88a5e512fb425",
+          "baseline_title": "董事会审议通过2026年上半年集团消费者权益保护工作报告议案",
+          "verdict": "keep",
+          "review_note": "董事会公告逐项列明的审议事项；无逐项独立日期原文。",
+          "baseline_date": null,
+          "source_document_id": "601318-0be62981986771b5c5e1",
+          "source_chunk_id": "601318-0be62981986771b5c5e1-p3-c1",
+          "source_quote": "九、审议通过了《关于审议〈2026 年上半年集团消费者权益保护工作报告〉的\n议案》",
+          "baseline_facts": [
+            {
+              "attribute": "审议通过消费者权益保护工作报告议案",
+              "value_text": null,
+              "quote": "九、审议通过了《关于审议〈2026 年上半年集团消费者权益保护工作报告〉的\n议案》",
+              "document_id": "601318-0be62981986771b5c5e1"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-ae95c0b16a1242ddaed4",
+          "baseline_title": "董事会审议通过2026年中期报告及摘要议案",
+          "verdict": "keep",
+          "review_note": "董事会公告逐项列明的审议事项；无逐项独立日期原文。",
+          "baseline_date": null,
+          "source_document_id": "601318-0be62981986771b5c5e1",
+          "source_chunk_id": "601318-0be62981986771b5c5e1-p1-c1",
+          "source_quote": "一、审议通过了《关于审议公司 2026 年中期报告及摘要的议案》",
+          "baseline_facts": [
+            {
+              "attribute": "审议通过中期报告议案",
+              "value_text": null,
+              "quote": "一、审议通过了《关于审议公司 2026 年中期报告及摘要的议案》",
+              "document_id": "601318-0be62981986771b5c5e1"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-4fff30c8f691683f2211",
+          "baseline_title": "董事会审议通过2026年中期股息议案",
+          "verdict": "keep",
+          "review_note": "董事会公告逐项列明的审议事项；无逐项独立日期原文。",
+          "baseline_date": null,
+          "source_document_id": "601318-0be62981986771b5c5e1",
+          "source_chunk_id": "601318-0be62981986771b5c5e1-p1-c1",
+          "source_quote": "二、审议通过了《关于派发 2026 年中期股息的议案》",
+          "baseline_facts": [
+            {
+              "attribute": "审议通过中期股息议案",
+              "value_text": null,
+              "quote": "二、审议通过了《关于派发 2026 年中期股息的议案》",
+              "document_id": "601318-0be62981986771b5c5e1"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-e27bb69b7d3cb137ea70",
+          "baseline_title": "董事会审议通过2026年半年度集团偿付能力报告议案",
+          "verdict": "keep",
+          "review_note": "董事会公告逐项列明的审议事项；无逐项独立日期原文。",
+          "baseline_date": null,
+          "source_document_id": "601318-0be62981986771b5c5e1",
+          "source_chunk_id": "601318-0be62981986771b5c5e1-p1-c1",
+          "source_quote": "三、审议通过了《关于审议〈2026 年半年度集团偿付能力报告〉的议案》",
+          "baseline_facts": [
+            {
+              "attribute": "审议通过偿付能力报告议案",
+              "value_text": null,
+              "quote": "三、审议通过了《关于审议〈2026 年半年度集团偿付能力报告〉的议案》",
+              "document_id": "601318-0be62981986771b5c5e1"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-6c00ac1edf0e9e98d1d8",
+          "baseline_title": "董事会审议通过《关于审议公司信息科技外包战略的议案》",
+          "verdict": "keep",
+          "review_note": "董事会公告逐项列明的审议事项；无逐项独立日期原文。",
+          "baseline_date": null,
+          "source_document_id": "601318-0be62981986771b5c5e1",
+          "source_chunk_id": "601318-0be62981986771b5c5e1-p1-c2",
+          "source_quote": "四、审议通过了《关于审议公司信息科技外包战略的议案》",
+          "baseline_facts": [
+            {
+              "attribute": "董事会审议通过议案",
+              "value_text": null,
+              "quote": "四、审议通过了《关于审议公司信息科技外包战略的议案》",
+              "document_id": "601318-0be62981986771b5c5e1"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-5c0666c3dacce693e258",
+          "baseline_title": "董事会审议通过公司2026年恢复计划和处置计划建议议案",
+          "verdict": "keep",
+          "review_note": "董事会公告逐项列明的审议事项；无逐项独立日期原文。",
+          "baseline_date": null,
+          "source_document_id": "601318-0be62981986771b5c5e1",
+          "source_chunk_id": "601318-0be62981986771b5c5e1-p3-c1",
+          "source_quote": "十、审议通过了《关于审议〈公司 2026 年恢复计划和处置计划建议〉的议案》",
+          "baseline_facts": [
+            {
+              "attribute": "审议通过恢复计划和处置计划建议议案",
+              "value_text": null,
+              "quote": "十、审议通过了《关于审议〈公司 2026 年恢复计划和处置计划建议〉的议案》",
+              "document_id": "601318-0be62981986771b5c5e1"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-449ca2391f2c5528cb7b",
+          "baseline_title": "董事会审议通过并表管理制度（2026版）议案",
+          "verdict": "keep",
+          "review_note": "董事会公告逐项列明的审议事项；无逐项独立日期原文。",
+          "baseline_date": null,
+          "source_document_id": "601318-0be62981986771b5c5e1",
+          "source_chunk_id": "601318-0be62981986771b5c5e1-p3-c1",
+          "source_quote": "十一、审议通过了《关于审议〈并表管理制度（2026 版）〉的议案》",
+          "baseline_facts": [
+            {
+              "attribute": "审议通过并表管理制度议案",
+              "value_text": null,
+              "quote": "十一、审议通过了《关于审议〈并表管理制度（2026 版）〉的议案》",
+              "document_id": "601318-0be62981986771b5c5e1"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-d44cdb452904cc6553f9",
+          "baseline_title": "董事会审议通过盛瑞生职务任中审计报告议案",
+          "verdict": "keep",
+          "review_note": "董事会公告逐项列明的审议事项；无逐项独立日期原文。",
+          "baseline_date": null,
+          "source_document_id": "601318-0be62981986771b5c5e1",
+          "source_chunk_id": "601318-0be62981986771b5c5e1-p2-c2",
+          "source_quote": "八、审议通过了《关于审议〈盛瑞生先生董事会秘书及公司秘书职务任中审计报\n告〉的议案》",
+          "baseline_facts": [
+            {
+              "attribute": "审议通过审计报告议案",
+              "value_text": null,
+              "quote": "八、审议通过了《关于审议〈盛瑞生先生董事会秘书及公司秘书职务任中审计报\n告〉的议案》",
+              "document_id": "601318-0be62981986771b5c5e1"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-49cb47af5f4bb620857d",
+          "baseline_title": "董事会审议通过蔡方方职务任中审计暨离任审计报告议案",
+          "verdict": "keep",
+          "review_note": "董事会公告逐项列明的审议事项；无逐项独立日期原文。",
+          "baseline_date": null,
+          "source_document_id": "601318-0be62981986771b5c5e1",
+          "source_chunk_id": "601318-0be62981986771b5c5e1-p2-c1",
+          "source_quote": "六、审议通过了《关于审议〈蔡方方女士副总经理职务任中审计暨执行董事职务\n离任审计报告〉的议案》",
+          "baseline_facts": [
+            {
+              "attribute": "审议通过审计报告议案",
+              "value_text": null,
+              "quote": "六、审议通过了《关于审议〈蔡方方女士副总经理职务任中审计暨执行董事职务\n离任审计报告〉的议案》",
+              "document_id": "601318-0be62981986771b5c5e1"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-1c922e411909698556f9",
+          "baseline_title": "董事会审议通过黄宝新职务任中审计报告议案",
+          "verdict": "keep",
+          "review_note": "董事会公告逐项列明的审议事项；无逐项独立日期原文。",
+          "baseline_date": null,
+          "source_document_id": "601318-0be62981986771b5c5e1",
+          "source_chunk_id": "601318-0be62981986771b5c5e1-p2-c1",
+          "source_quote": "七、审议通过了《关于审议〈黄宝新先生副总经理职务任中审计报告〉的议案》",
+          "baseline_facts": [
+            {
+              "attribute": "审议通过审计报告议案",
+              "value_text": null,
+              "quote": "七、审议通过了《关于审议〈黄宝新先生副总经理职务任中审计报告〉的议案》",
+              "document_id": "601318-0be62981986771b5c5e1"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-5962a2bb94cf50a261d4",
+          "baseline_title": "董事会逐项审议通过公司治理相关制度议案",
+          "verdict": "keep",
+          "review_note": "董事会公告逐项列明的审议事项；无逐项独立日期原文。",
+          "baseline_date": null,
+          "source_document_id": "601318-0be62981986771b5c5e1",
+          "source_chunk_id": "601318-0be62981986771b5c5e1-p2-c1",
+          "source_quote": "五、逐项审议通过了《关于审议公司治理相关制度的议案》",
+          "baseline_facts": [
+            {
+              "attribute": "审议通过公司治理相关制度议案",
+              "value_text": null,
+              "quote": "五、逐项审议通过了《关于审议公司治理相关制度的议案》",
+              "document_id": "601318-0be62981986771b5c5e1"
+            }
+          ]
+        }
+      ],
+      "expected_final": {
+        "event_count": 19,
+        "known_dates": {
+          "第十三届董事会第十五次会议召开": "2026-08-20",
+          "中国平安2026年上半年业绩披露": "2026-08-20"
+        },
+        "required_titles": [
+          "拟派发中期股息",
+          "董事会审议通过《关于审议公司信息科技外包战略的议案》",
+          "董事会审议通过盛瑞生职务任中审计报告议案",
+          "董事会审议通过蔡方方职务任中审计暨离任审计报告议案",
+          "董事会审议通过黄宝新职务任中审计报告议案"
+        ],
+        "required_values": [
+          "925.85亿元",
+          "10,280.84亿元",
+          "1.03万亿元"
+        ],
+        "minimum_conflicts": 0
+      }
+    },
+    "smic": {
+      "subject_code": "688981",
+      "window_start": "2026-08-13",
+      "as_of_date": "2026-09-12",
+      "reviewed_events": [
+        {
+          "baseline_event_id": "event-fdb35466ca603cc5840f",
+          "baseline_title": "安永华明出具验资报告",
+          "verdict": "keep",
+          "review_note": "公告载明8月28日出具验资报告。",
+          "baseline_date": "2026-08-28",
+          "source_document_id": "688981-4cbc245b85b2da6a4169",
+          "source_chunk_id": "688981-4cbc245b85b2da6a4169-p4-c1",
+          "source_quote": "安永华明会计师事务所（特殊普通合伙）于 2026 年 8 月 28 日出具了《验资\n报告》（安永华明（2026）验字第 70017693_B02 号），对本激励计划预留授予部分\n第四个归属期符合归属条件的激励对象出资情况进行了审验。",
+          "baseline_facts": [
+            {
+              "attribute": "验资报告出具日",
+              "value_text": null,
+              "quote": "安永华明会计师事务所（特殊普通合伙）于 2026 年 8 月 28 日出具了《验资\n报告》（安永华明（2026）验字第 70017693_B02 号），对本激励计划预留授予部分\n第四个归属期符合归属条件的激励对象出资情况进行了审验。",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-91d019d60fc68de3340f",
+          "baseline_title": "预留授予部分第四个归属期股份完成登记",
+          "verdict": "keep",
+          "review_note": "公告载明9月4日完成股份登记。",
+          "baseline_date": "2026-09-04",
+          "source_document_id": "688981-4cbc245b85b2da6a4169",
+          "source_chunk_id": "688981-4cbc245b85b2da6a4169-p4-c1",
+          "source_quote": "2026 年 9 月 4 日，公司 2021 年科创板限制性股票激励计划预留授予部分第四\n个归属期的股份完成登记手续，中国证券登记结算有限责任公司上海分公司出具\n了《证券变更登记证明》。",
+          "baseline_facts": [
+            {
+              "attribute": "股份登记完成日",
+              "value_text": null,
+              "quote": "2026 年 9 月 4 日，公司 2021 年科创板限制性股票激励计划预留授予部分第四\n个归属期的股份完成登记手续，中国证券登记结算有限责任公司上海分公司出具\n了《证券变更登记证明》。",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-ce2cf9af43098388268b",
+          "baseline_title": "收到证券变更登记证明",
+          "verdict": "keep",
+          "review_note": "公告载明9月7日收到证券变更登记证明。",
+          "baseline_date": "2026-09-07",
+          "source_document_id": "688981-4cbc245b85b2da6a4169",
+          "source_chunk_id": "688981-4cbc245b85b2da6a4169-p1-c1",
+          "source_quote": "中芯国际集成电路制造有限公司（以下简称“公司”）于 2026 年 9 月 7 日收\n到中国证券登记结算有限责任公司上海分公司出具的《证券变更登记证明》，公司\n已完成 2021 年科创板限制性股票激励计划（以下简称“本激励计划”）预留授予部\n分第四个归属期的股份登记工作。",
+          "baseline_facts": [
+            {
+              "attribute": "收到证券变更登记证明日期",
+              "value_text": null,
+              "quote": "中芯国际集成电路制造有限公司（以下简称“公司”）于 2026 年 9 月 7 日收\n到中国证券登记结算有限责任公司上海分公司出具的《证券变更登记证明》，公司\n已完成 2021 年科创板限制性股票激励计划（以下简称“本激励计划”）预留授予部\n分第四个归属期的股份登记工作。",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-b9d34501582d7a12b153",
+          "baseline_title": "2026年上半年晶圆平均售价6667元",
+          "verdict": "merge",
+          "review_note": "晶圆售价为上半年期间统计指标，并入上半年业绩披露。",
+          "baseline_date": null,
+          "source_document_id": "688981-0d2133dba0dc2423040d",
+          "source_chunk_id": "688981-0d2133dba0dc2423040d-para-12",
+          "source_quote": "平均售价本期为6667元，上年同期为6482元",
+          "baseline_facts": [
+            {
+              "attribute": "晶圆平均售价",
+              "value_text": "6667元",
+              "quote": "平均售价本期为6667元，上年同期为6482元",
+              "document_id": "688981-0d2133dba0dc2423040d"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-32b002c94bb3095af704",
+          "baseline_title": "2026年上半年销售晶圆537.9万片",
+          "verdict": "merge",
+          "review_note": "晶圆销量为上半年期间统计指标，并入上半年业绩披露。",
+          "baseline_date": null,
+          "source_document_id": "688981-0d2133dba0dc2423040d",
+          "source_chunk_id": "688981-0d2133dba0dc2423040d-para-12",
+          "source_quote": "销售晶圆的数量（折合8英寸标准逻辑）由上年同期的468.2万片增加14.9%至本期的537.9万片",
+          "baseline_facts": [
+            {
+              "attribute": "销售晶圆数量（折合8英寸标准逻辑）",
+              "value_text": "537.9万",
+              "quote": "销售晶圆的数量（折合8英寸标准逻辑）由上年同期的468.2万片增加14.9%至本期的537.9万片",
+              "document_id": "688981-0d2133dba0dc2423040d"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-8f5561cb20663c32f654",
+          "baseline_title": "中芯国际2026年上半年业绩披露",
+          "verdict": "keep",
+          "review_note": "上半年报告中的经营数据归一披露事件；仅媒体记载8月27日晚间披露。",
+          "baseline_date": null,
+          "source_document_id": "688981-0d2133dba0dc2423040d",
+          "source_chunk_id": "688981-0d2133dba0dc2423040d-para-11",
+          "source_quote": "8月27日晚间披露2026年半年度报告",
+          "baseline_facts": [
+            {
+              "attribute": "半年度报告披露动作",
+              "value_text": null,
+              "quote": "8月27日晚间披露2026年半年度报告",
+              "document_id": "688981-0d2133dba0dc2423040d"
+            },
+            {
+              "attribute": "营业收入",
+              "value_text": "386.35亿元",
+              "quote": "今年上半年公司实现营收386.35亿元，同比增长19.4%",
+              "document_id": "688981-0d2133dba0dc2423040d"
+            },
+            {
+              "attribute": "归母净利润",
+              "value_text": "44.67亿元",
+              "quote": "归母净利润44.67亿元，同比增长94.16%",
+              "document_id": "688981-0d2133dba0dc2423040d"
+            },
+            {
+              "attribute": "扣非归母净利润",
+              "value_text": "29.94亿元",
+              "quote": "扣非归母净利润29.94亿元，同比增长57.2%",
+              "document_id": "688981-0d2133dba0dc2423040d"
+            },
+            {
+              "attribute": "经营活动现金流净额",
+              "value_text": "207.6亿元",
+              "quote": "经营活动现金流净额207.6亿元，同比增长252%",
+              "document_id": "688981-0d2133dba0dc2423040d"
+            },
+            {
+              "attribute": "研发投入金额及占营收比重",
+              "value_text": "27.25亿元",
+              "quote": "研发投入27.25亿元，同比增长14.8%，占营业收入比重7.1%",
+              "document_id": "688981-0d2133dba0dc2423040d"
+            },
+            {
+              "attribute": "归属于上市公司股东的净利润",
+              "value_text": "4,467,431 千元",
+              "quote": "根据公司《2026 年半年度报告》，公司 2026 年 1-6 月实现归属于上市公司股东\n的净利润为 4,467,431 千元，公司 2026 年 1-6 月基本每股收益为 0.56 元/股",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            },
+            {
+              "attribute": "基本每股收益",
+              "value_text": "0.56 元",
+              "quote": "公司 2026 年 1-6 月基本每股收益为 0.56 元/股",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            },
+            {
+              "attribute": "营业收入",
+              "value_text": "38,635,115",
+              "quote": "单位：千元 币种：人民币\n主要会计数据 本报告期 上年同期 本报告期比上年\n同期增减(%)\n营业收入 38,635,115 32,348,049 19.4",
+              "document_id": "688981-6a44b7cfe77129d47089"
+            },
+            {
+              "attribute": "归属于上市公司股东的净利润",
+              "value_text": "4,467,431",
+              "quote": "单位：千元 币种：人民币\n主要会计数据 本报告期 上年同期 本报告期比上年\n同期增减(%)\n营业收入 38,635,115 32,348,049 19.4\n利润总额 7,133,405 3,626,593 96.7\n归属于上市公司股东的净利润 4,467,431 2,300,866 94.2",
+              "document_id": "688981-6a44b7cfe77129d47089"
+            },
+            {
+              "attribute": "利润总额",
+              "value_text": "7,133,405",
+              "quote": "单位：千元 币种：人民币\n主要会计数据 本报告期 上年同期 本报告期比上年\n同期增减(%)\n营业收入 38,635,115 32,348,049 19.4\n利润总额 7,133,405 3,626,593 96.7",
+              "document_id": "688981-6a44b7cfe77129d47089"
+            },
+            {
+              "attribute": "归属于上市公司股东的扣除非经常性损益的净利润",
+              "value_text": "2,993,605",
+              "quote": "单位：千元 币种：人民币\n主要会计数据 本报告期 上年同期 本报告期比上年\n同期增减(%)\n营业收入 38,635,115 32,348,049 19.4\n利润总额 7,133,405 3,626,593 96.7\n归属于上市公司股东的净利润 4,467,431 2,300,866 94.2\n归属于上市公司股东的扣除非经常\n性损益的净利润\n2,993,605 1,903,725 57.2",
+              "document_id": "688981-6a44b7cfe77129d47089"
+            },
+            {
+              "attribute": "经营活动产生的现金流量净额",
+              "value_text": "20,759,511",
+              "quote": "经营活动产生的现金流量净额 20,759,511 5,897,793 252.0",
+              "document_id": "688981-6a44b7cfe77129d47089"
+            },
+            {
+              "attribute": "息税折旧及摊销前利润",
+              "value_text": "24,510,677",
+              "quote": "息税折旧及摊销前利润(“EBITDA”) 24,510,677 17,418,192 40.7",
+              "document_id": "688981-6a44b7cfe77129d47089"
+            },
+            {
+              "attribute": "归属于上市公司股东的净资产",
+              "value_text": "171,456,605",
+              "quote": "归属于上市公司股东的净资产 171,456,605 150,823,788 13.7",
+              "document_id": "688981-6a44b7cfe77129d47089"
+            },
+            {
+              "attribute": "总资产",
+              "value_text": "389,960,656",
+              "quote": "总资产 389,960,656 367,718,196 6.0",
+              "document_id": "688981-6a44b7cfe77129d47089"
+            },
+            {
+              "attribute": "毛利率",
+              "value_text": "23.2",
+              "quote": "毛利率(%) 23.2 21.9 增加1.3个百分点",
+              "document_id": "688981-6a44b7cfe77129d47089"
+            },
+            {
+              "attribute": "基本每股收益",
+              "value_text": "0.56",
+              "quote": "基本每股收益（元／股） 0.56 0.29 93.1",
+              "document_id": "688981-6a44b7cfe77129d47089"
+            },
+            {
+              "attribute": "研发投入占营业收入的比例",
+              "value_text": "7.1",
+              "quote": "研发投入占营业收入的比例（%） 7.1 7.3 减少0.2个百分点",
+              "document_id": "688981-6a44b7cfe77129d47089"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-14b2bf2f79c43a5b25d3",
+          "baseline_title": "业绩增长原因说明——晶圆销量增加、平均售价上升及产品组合变动",
+          "verdict": "merge",
+          "review_note": "业绩变动原因是半年报解释，并入上半年业绩披露。",
+          "baseline_date": null,
+          "source_document_id": "688981-6a44b7cfe77129d47089",
+          "source_chunk_id": "688981-6a44b7cfe77129d47089-p8-c1",
+          "source_quote": "利润总额、归属于上市公司股东的净利润、归属于上市公司股东的扣除非经常性损益的净利\n润及 EBITDA 的增加，主要是由于本期晶圆销量增加、平均售价上升及产品组合变动所致。",
+          "baseline_facts": [
+            {
+              "attribute": "业绩变动原因",
+              "value_text": null,
+              "quote": "利润总额、归属于上市公司股东的净利润、归属于上市公司股东的扣除非经常性损益的净利\n润及 EBITDA 的增加，主要是由于本期晶圆销量增加、平均售价上升及产品组合变动所致。",
+              "document_id": "688981-6a44b7cfe77129d47089"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-005b765959d549880853",
+          "baseline_title": "751名激励对象缴纳限制性股票出资款",
+          "verdict": "keep",
+          "review_note": "公告载明截至8月14日收到出资款，只能确定截止日，不能确定每笔缴款日。",
+          "baseline_date": null,
+          "source_document_id": "688981-4cbc245b85b2da6a4169",
+          "source_chunk_id": "688981-4cbc245b85b2da6a4169-p4-c1",
+          "source_quote": "截至 2026\n年 8 月 14 日，公司收到的股票出资款情况如下：\n符合预留授予部分第四个归属期条件的 751 名激励对象以现金形式缴纳的\n1,031,360 股人民币普通股股票出资款，共计人民币 20,627,200.00 元",
+          "baseline_facts": [
+            {
+              "attribute": "激励对象股票出资款金额",
+              "value_text": "20,627,200.00 元",
+              "quote": "截至 2026\n年 8 月 14 日，公司收到的股票出资款情况如下：\n符合预留授予部分第四个归属期条件的 751 名激励对象以现金形式缴纳的\n1,031,360 股人民币普通股股票出资款，共计人民币 20,627,200.00 元",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-227564e5a50c2ef97f7e",
+          "baseline_title": "751名激励对象缴纳限制性股票股数",
+          "verdict": "merge",
+          "review_note": "同一激励计划缴款事实的股数，合入出资款事项。",
+          "baseline_date": null,
+          "source_document_id": "688981-4cbc245b85b2da6a4169",
+          "source_chunk_id": "688981-4cbc245b85b2da6a4169-p4-c1",
+          "source_quote": "符合预留授予部分第四个归属期条件的 751 名激励对象以现金形式缴纳的\n1,031,360 股人民币普通股股票出资款",
+          "baseline_facts": [
+            {
+              "attribute": "激励对象归属股数",
+              "value_text": "1,031,360 股",
+              "quote": "符合预留授予部分第四个归属期条件的 751 名激励对象以现金形式缴纳的\n1,031,360 股人民币普通股股票出资款",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-f160c36df11593467dab",
+          "baseline_title": "中高级业务管理人员归属情况",
+          "verdict": "merge",
+          "review_note": "归属对象分组数据，合入股份归属事项。",
+          "baseline_date": null,
+          "source_document_id": "688981-4cbc245b85b2da6a4169",
+          "source_chunk_id": "688981-4cbc245b85b2da6a4169-p3-c1",
+          "source_quote": "一、中高级业务管理人员 52.88 10.58 20.00%",
+          "baseline_facts": [
+            {
+              "attribute": "中高级业务管理人员本次归属数量",
+              "value_text": "10.58",
+              "quote": "一、中高级业务管理人员 52.88 10.58 20.00%",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-a55ffee0bb9fbf27b9ac",
+          "baseline_title": "技术及业务骨干人员归属情况",
+          "verdict": "merge",
+          "review_note": "归属对象分组数据，合入股份归属事项。",
+          "baseline_date": null,
+          "source_document_id": "688981-4cbc245b85b2da6a4169",
+          "source_chunk_id": "688981-4cbc245b85b2da6a4169-p3-c1",
+          "source_quote": "二、技术及业务骨干人员 464.28 92.56 19.94%",
+          "baseline_facts": [
+            {
+              "attribute": "技术及业务骨干人员本次归属数量",
+              "value_text": "92.56",
+              "quote": "二、技术及业务骨干人员 464.28 92.56 19.94%",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-008786ebb9fde092ce03",
+          "baseline_title": "本次归属股票数量占总股本比例",
+          "verdict": "merge",
+          "review_note": "归属比例是归属事项的指标，合入股份归属事项。",
+          "baseline_date": null,
+          "source_document_id": "688981-4cbc245b85b2da6a4169",
+          "source_chunk_id": "688981-4cbc245b85b2da6a4169-p4-c1",
+          "source_quote": "本次归属的限制性股票数量为 1,031,360 股，占归属前公司总股本的比例约为\n0.012 %，不会对公司最近一期财务状况和经营成果构成重大影响。",
+          "baseline_facts": [
+            {
+              "attribute": "本次归属股票数量占归属前总股本比例",
+              "value_text": "0.012 %",
+              "quote": "本次归属的限制性股票数量为 1,031,360 股，占归属前公司总股本的比例约为\n0.012 %，不会对公司最近一期财务状况和经营成果构成重大影响。",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-ba962b1ec707826383ec",
+          "baseline_title": "本次限制性股票归属人数",
+          "verdict": "merge",
+          "review_note": "归属人数是归属事项的指标，合入股份归属事项。",
+          "baseline_date": null,
+          "source_document_id": "688981-4cbc245b85b2da6a4169",
+          "source_chunk_id": "688981-4cbc245b85b2da6a4169-p3-c1",
+          "source_quote": "（一）本次归属人数：751 人",
+          "baseline_facts": [
+            {
+              "attribute": "归属人数",
+              "value_text": "751",
+              "quote": "（一）本次归属人数：751 人",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            }
+          ]
+        },
+        {
+          "baseline_event_id": "event-ce5afa71cb8c09fcf921",
+          "baseline_title": "激励股份上市股数",
+          "verdict": "rename",
+          "review_note": "9月10日是公告列示的预定上市流通日；缺实际完成凭据。",
+          "baseline_date": null,
+          "source_document_id": "688981-4cbc245b85b2da6a4169",
+          "source_chunk_id": "688981-4cbc245b85b2da6a4169-p1-c1",
+          "source_quote": "本次股票上市类型为 股权激励股份 ；股票认购方式为 网下 ，上市股数为\n1,031,360股。",
+          "baseline_facts": [
+            {
+              "attribute": "本次上市流通股数",
+              "value_text": "1,031,360股",
+              "quote": "本次股票上市类型为 股权激励股份 ；股票认购方式为 网下 ，上市股数为\n1,031,360股。",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            },
+            {
+              "attribute": "本次股票上市流通日期",
+              "value_text": null,
+              "quote": "本次股票上市流通日期为2026 年 9 月 10 日。",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            },
+            {
+              "attribute": "上市流通日",
+              "value_text": null,
+              "quote": "（一）本次归属股票的上市流通日：2026 年 9 月 10 日",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            },
+            {
+              "attribute": "上市流通数量",
+              "value_text": "1,031,360 股",
+              "quote": "（二）本次归属股票的上市流通数量：1,031,360 股",
+              "document_id": "688981-4cbc245b85b2da6a4169"
+            }
+          ]
+        }
+      ],
+      "expected_final": {
+        "event_count": 6,
+        "known_dates": {
+          "安永华明出具验资报告": "2026-08-28",
+          "预留授予部分第四个归属期股份完成登记": "2026-09-04",
+          "收到证券变更登记证明": "2026-09-07"
+        },
+        "required_titles": [
+          "公告预定归属股份上市流通",
+          "激励对象缴纳归属股份出资款"
+        ],
+        "required_values": [
+          "1,031,360股",
+          "0.012 %"
+        ],
+        "minimum_conflicts": 0
+      }
+    }
+  }
+}

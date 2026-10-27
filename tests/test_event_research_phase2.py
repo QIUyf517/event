@@ -4,12 +4,34 @@ from datetime import date
 from hashlib import sha256
 
 import pytest
+import sqlite3
 
 from app.data.event_sources import validate_source_url
 from app.data.repositories.sqlite import SQLiteRepository
 from app.data.seed import seed_event_research_subjects
 from app.rag.ingest import build_document, collect_event_document
 from app.tools.research_tools import EventResearchTools
+
+
+def test_legacy_source_column_is_removed_without_losing_event_material(tmp_path):
+    path = tmp_path / "legacy_source.sqlite3"
+    repo = SQLiteRepository(path)
+    document, _ = add_material(repo, "600519", "sse_announcement",
+        "https://www.sse.com.cn/disclosure/migration.html", "公司公告",
+        date(2026, 9, 20), "公司发布经营事项公告。")
+    expected = repo.conn.execute("SELECT * FROM document_chunks").fetchall()
+    repo.close()
+    with sqlite3.connect(path) as conn:
+        conn.execute("ALTER TABLE documents ADD COLUMN etf_codes TEXT NOT NULL DEFAULT '[]'")
+    repo = SQLiteRepository(path)
+    assert "etf_codes" not in {r[1] for r in repo.conn.execute("PRAGMA table_info(documents)")}
+    assert repo.conn.execute("SELECT document_id FROM documents").fetchone()[0] == document.document_id
+    assert [tuple(r) for r in repo.conn.execute("SELECT * FROM document_chunks")] == [tuple(r) for r in expected]
+    add_material(repo, "601318", "sse_announcement",
+        "https://www.sse.com.cn/disclosure/new.html", "另一公司公告",
+        date(2026, 9, 21), "另一公司发布经营事项公告。")
+    assert repo.conn.execute("SELECT count(*) FROM documents").fetchone()[0] == 2
+    repo.close()
 
 
 def add_material(repo, subject_id: str, source_id: str, source_url: str, title: str,

@@ -6,13 +6,13 @@ services:
     env_file:
       - .env
     environment:
-      ETF_DATABASE_PATH: /app/data/etf_research.sqlite3
-      ETF_SETTINGS_DATABASE_PATH: /app/data/app_settings.sqlite3
+      EVENT_RESEARCH_DATABASE_PATH: /app/data/event_research.sqlite3
+      EVENT_GRAPH_DATABASE_PATH: /app/data/event_graph.sqlite3
     volumes:
-      - etf-data:/app/data
-      - etf-output:/app/output
+      - event-data:/app/data
+      - event-output:/app/output
     restart: unless-stopped
 
 volumes:
-  etf-data:
-  etf-output:
+  event-data:
+  event-output:

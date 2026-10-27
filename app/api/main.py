@@ -1,37 +1,34 @@
-"""A股企业事件研究与ETF资金信号助手的HTTP API。"""
+"""HTTP API for bounded company event research."""
 
 from __future__ import annotations
 
-import json
 import secrets
-from collections.abc import Callable
-from datetime import date, timedelta
+import os
+import json
+from datetime import date
 from pathlib import Path
 from typing import Literal
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query
+from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
-from app.agents.llm_research import ModelDrivenResearchAgent
+from app.agents.event_graph_builder import EventGraphBuilder
 from app.agents.event_orchestrator import EventResearchOrchestrator
-from app.agents.single_agent import SingleResearchAgent
-from app.config import (ALGORITHM_VERSION, ALLOWED_ETFS, API_CORS_ORIGINS, API_WRITE_KEY,
-                         APP_VERSION, EVENT_RESEARCH_DATABASE_PATH, PROJECT_ROOT,
-                         SETTINGS_DATABASE_PATH, database_path_for_mode)
+from app.config import (API_CORS_ORIGINS, API_WRITE_KEY, APP_VERSION,
+                        EVENT_DEBATE_DATABASE_PATH, EVENT_GRAPH_DATABASE_PATH, EVENT_RESEARCH_DATABASE_PATH,
+                        PROJECT_ROOT)
+from app.agents.typed_hypothesis import TypedEventHypothesisDebate as EventHypothesisDebate
+from app.data.repositories.event_debate import EventDebateStore
+from app.data.repositories.event_graph import EventGraphStore
 from app.data.repositories.sqlite import SQLiteRepository
-from app.data.seed import seed_demo, seed_profile
-from app.data.sync import sync_market_data
-from app.evaluation.service import DEFAULT_OUTPUT
-from app.models.research import UserSettings
-from app.monitoring.service import compare_etfs, run_monitor_once
-from app.reporting.pdf_export import render_report_pdf, report_pdf_filename
-from app.tools.research_tools import EVENT_SUBJECTS, ResearchTools
+from app.tools.research_tools import EVENT_SUBJECTS
+from app.agents.research_workflow import WorkflowStore, new_run, execute_run
+from app.reporting.event_report import public_debate
 
 
-Mode = Literal["demo", "live"]
-ResearchMethod = Literal["rules", "ai"]
 EventMaterialType = Literal["announcement", "news", "financial"]
 ACCEPTED_EVENT_SAMPLE_PATH = (PROJECT_ROOT / "output" / "event-phase2-20261012-accepted"
                               / "event_research_phase2.sqlite3")
@@ -40,20 +37,11 @@ ACCEPTED_EVENT_PHASE3_PATH = (PROJECT_ROOT / "output" / "event-phase3-20261012-a
 
 
 def event_excerpt(content: str, query: str, max_chars: int = 320) -> str:
-    """Show a short original-text excerpt near an exact keyword match when possible."""
     text = " ".join(content.split())
     position = text.lower().find(query.lower())
     start = max(0, position - 90) if position >= 0 else 0
     end = min(len(text), start + max_chars)
     return ("…" if start else "") + text[start:end] + ("…" if end < len(text) else "")
-
-
-class ResearchRequest(BaseModel):
-    question: str = Field(min_length=1, max_length=500)
-    etf_code: str = "510300"
-    as_of_date: date = Field(default_factory=date.today)
-    mode: Mode = "demo"
-    method: ResearchMethod = "rules"
 
 
 class EventPlanRequest(BaseModel):
@@ -63,41 +51,40 @@ class EventPlanRequest(BaseModel):
     as_of_date: date
 
 
-class MonitorRequest(BaseModel):
-    as_of_date: date = Field(default_factory=date.today)
-    mode: Mode = "demo"
-    sync_live: bool = False
+class EventDebateRequest(BaseModel):
+    graph_run_id: str = Field(min_length=1, max_length=100)
 
 
-class SyncRequest(BaseModel):
-    start_date: date = Field(default_factory=lambda: date.today().replace(month=1, day=1))
-    end_date: date = Field(default_factory=date.today)
+def public_debate_payload(run) -> dict:
+    return public_debate(run)
 
 
-def create_app(database_resolver: Callable[[str], Path] = database_path_for_mode,
-               write_key: str | None = API_WRITE_KEY, settings_path: Path | None = None,
-               event_database_path: Path | None = None) -> FastAPI:
-    api = FastAPI(title="A股企业事件研究与ETF资金信号助手 API", version=APP_VERSION,
-        description="提供企业事件资料检索与有边界的模型规划，以及可核验的ETF信号、报告和监控状态。受保护接口需要X-API-Key。")
+def create_app(write_key: str | None = API_WRITE_KEY,
+               event_database_path: Path | None = None,
+               event_graph_path: Path | None = None,
+               event_debate_path: Path | None = None) -> FastAPI:
+    workflow_store = WorkflowStore((event_debate_path or EVENT_DEBATE_DATABASE_PATH).with_suffix(".runs.sqlite3"))
+
+    @asynccontextmanager
+    async def lifespan(_app):
+        workflow_store.interrupt_unfinished()
+        yield
+
+    api = FastAPI(title="A股企业事件研究 API", version=APP_VERSION, lifespan=lifespan,
+        description="按日期检索已保存的企业原文，生成事件时间线及带反方核验的研究假设。模型调用需要 X-API-Key。")
     if API_CORS_ORIGINS:
         api.add_middleware(CORSMiddleware, allow_origins=list(API_CORS_ORIGINS),
-            allow_credentials=False, allow_methods=["GET", "POST", "PUT"], allow_headers=["*"])
+            allow_credentials=False, allow_methods=["GET", "POST"], allow_headers=["*"])
 
     def require_write_access(x_api_key: str | None = Header(default=None, alias="X-API-Key")):
+        if os.getenv("EVENT_DEMO_MODE") == "true":
+            raise HTTPException(status_code=403, detail="历史演示只读，不调用模型；正式运行请使用常规启动命令")
         if not write_key:
-            raise HTTPException(status_code=503, detail="写接口尚未配置ETF_API_WRITE_KEY")
+            raise HTTPException(status_code=503, detail="模型调用接口尚未配置 EVENT_API_WRITE_KEY")
         if not x_api_key or not secrets.compare_digest(x_api_key, write_key):
             raise HTTPException(status_code=401, detail="X-API-Key无效")
 
-    def open_repo(mode: str) -> SQLiteRepository:
-        if mode not in {"demo", "live"}:
-            raise HTTPException(status_code=422, detail="mode只能是demo或live")
-        return SQLiteRepository(database_resolver(mode))
-
-    def open_settings_repo() -> SQLiteRepository:
-        return SQLiteRepository(settings_path or SETTINGS_DATABASE_PATH)
-
-    def open_event_repo() -> tuple[SQLiteRepository, str]:
+    def source_path_and_kind() -> tuple[Path, str]:
         if event_database_path is not None:
             path, source_kind = event_database_path, "configured"
         elif EVENT_RESEARCH_DATABASE_PATH.is_file():
@@ -108,6 +95,10 @@ def create_app(database_resolver: Callable[[str], Path] = database_path_for_mode
             path, source_kind = ACCEPTED_EVENT_SAMPLE_PATH, "accepted_sample"
         if not path.is_file():
             raise HTTPException(status_code=404, detail="尚无事件资料库，请先采集资料或配置事件资料库路径")
+        return path, source_kind
+
+    def open_event_repo() -> tuple[SQLiteRepository, str]:
+        path, source_kind = source_path_and_kind()
         return SQLiteRepository.open_readonly(path), source_kind
 
     @api.get("/", tags=["system"])
@@ -116,17 +107,19 @@ def create_app(database_resolver: Callable[[str], Path] = database_path_for_mode
 
     @api.get("/health", tags=["system"])
     def health():
-        databases = {}
-        for mode in ("demo", "live"):
-            path = database_resolver(mode)
-            databases[mode] = {"path": str(path), "exists": path.is_file(),
-                               "size_bytes": path.stat().st_size if path.is_file() else 0}
-        return {"status": "ok", "version": APP_VERSION, "databases": databases,
-                "write_api_configured": bool(write_key)}
-
-    @api.get("/api/v1/etfs", tags=["research"])
-    def etfs():
-        return [{"etf_code": code, "name": name} for code, name in ALLOWED_ETFS.items()]
+        graph = event_graph_path or EVENT_GRAPH_DATABASE_PATH
+        debate = event_debate_path or EVENT_DEBATE_DATABASE_PATH
+        try:
+            source, source_kind = source_path_and_kind()
+        except HTTPException:
+            source, source_kind = None, "unavailable"
+        return {"status": "ok", "version": APP_VERSION,
+                "event_source_database_exists": source is not None,
+                "event_source_kind": source_kind,
+                "event_graph_database_exists": graph.is_file(),
+                "event_debate_database_exists": debate.is_file(),
+                "model_call_key_configured": bool(write_key) and os.getenv("EVENT_DEMO_MODE") != "true",
+                "demo_mode": os.getenv("EVENT_DEMO_MODE") == "true"}
 
     @api.get("/api/v1/event-research/subjects", tags=["event research"])
     def event_subjects():
@@ -142,6 +135,14 @@ def create_app(database_resolver: Callable[[str], Path] = database_path_for_mode
                     "source_kind": source_kind}
         finally:
             repo.close()
+
+    @api.get("/api/v1/event-research/demo", tags=["event research"])
+    def demo_catalog():
+        if os.getenv("EVENT_DEMO_MODE") != "true":
+            return {"enabled": False, "runs": []}
+        manifest = json.loads((PROJECT_ROOT / "data/event_demo.json").read_text(encoding="utf-8"))
+        return {"enabled": True, "runs": [{"run_id": run["run_id"], "label": run["graph"]["subject_name"]}
+                                         for run in manifest["runs"]]}
 
     @api.get("/api/v1/event-research/search", tags=["event research"])
     def search_event_materials(subject_id: str, start_date: date, end_date: date,
@@ -176,9 +177,7 @@ def create_app(database_resolver: Callable[[str], Path] = database_path_for_mode
     @api.post("/api/v1/event-research/plan-run", tags=["event research"],
               dependencies=[Depends(require_write_access)])
     def run_event_plan(request: EventPlanRequest):
-        repo, source_kind = open_event_repo()
-        path = repo.path
-        repo.close()
+        path, source_kind = source_path_and_kind()
         try:
             result = EventResearchOrchestrator(path).run(request.question, request.subject_code,
                 request.as_of_date, request.window_start)
@@ -188,188 +187,129 @@ def create_app(database_resolver: Callable[[str], Path] = database_path_for_mode
         except RuntimeError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    @api.get("/api/v1/evaluation/latest", tags=["system"])
-    def latest_evaluation():
-        if not DEFAULT_OUTPUT.is_file():
-            raise HTTPException(status_code=404, detail="尚未生成评估结果，请运行etf-research evaluate")
-        return json.loads(DEFAULT_OUTPUT.read_text(encoding="utf-8"))
+    @api.post("/api/v1/event-research/runs", status_code=202,
+              tags=["event research"], dependencies=[Depends(require_write_access)])
+    def start_research(request: EventPlanRequest, background: BackgroundTasks):
+        if (not request.question.strip() or request.subject_code not in EVENT_SUBJECTS
+                or request.as_of_date > date.today() or request.window_start > request.as_of_date
+                or (request.as_of_date - request.window_start).days > 30):
+            raise HTTPException(status_code=422, detail="研究对象、问题或30天日期窗口无效")
+        path, _ = source_path_and_kind()
+        run = new_run(request.model_dump(mode="json"))
+        workflow_store.save(run)
+        background.add_task(execute_run, run, workflow_store, path,
+                            event_graph_path or EVENT_GRAPH_DATABASE_PATH,
+                            event_debate_path or EVENT_DEBATE_DATABASE_PATH)
+        return {"run": run}
 
-    @api.get("/api/v1/signals/{etf_code}", tags=["research"])
-    def signal_history(etf_code: str, mode: Mode = "demo",
-                       start: date = Query(default_factory=lambda: date.today() - timedelta(days=180)),
-                       end: date = Query(default_factory=date.today), limit: int = Query(60, ge=1, le=500)):
-        if etf_code not in ALLOWED_ETFS:
-            raise HTTPException(status_code=404, detail="不支持的ETF代码")
-        repo = open_repo(mode)
-        try:
-            rows = repo.signal_history(etf_code, start, end, ALGORITHM_VERSION)[-limit:]
-            return {"etf_code": etf_code, "mode": mode, "count": len(rows),
-                    "items": [item.model_dump(mode="json") for item in rows]}
-        finally:
-            repo.close()
+    @api.get("/api/v1/event-research/runs/{run_id}", tags=["event research"])
+    def read_research(run_id: str):
+        run = workflow_store.get(run_id)
+        if run is None:
+            raise HTTPException(status_code=404, detail="研究运行不存在")
+        return {"run": run}
 
-    @api.get("/api/v1/market/{etf_code}", tags=["research"])
-    def market_history(etf_code: str, mode: Mode = "demo",
-                       end: date = Query(default_factory=date.today),
-                       limit: int = Query(90, ge=5, le=365)):
-        if etf_code not in ALLOWED_ETFS:
-            raise HTTPException(status_code=404, detail="不支持的ETF代码")
-        repo = open_repo(mode)
+    @api.post("/api/v1/event-research/timeline/build", tags=["event research"],
+              dependencies=[Depends(require_write_access)])
+    def build_event_timeline(request: EventPlanRequest):
+        path, source_kind = source_path_and_kind()
         try:
-            if mode == "demo" and repo.profile(etf_code) is None:
-                seed_demo(repo, end)
-            rows = repo.market(etf_code, end, limit=limit)
-            return {"etf_code": etf_code, "mode": mode, "count": len(rows),
-                    "items": [item.model_dump(mode="json") for item in rows]}
-        finally:
-            repo.close()
-
-    @api.get("/api/v1/comparison", tags=["research"])
-    def comparison(mode: Mode = "demo", as_of_date: date = Query(default_factory=date.today)):
-        repo = open_repo(mode)
-        try:
-            if mode == "demo" and any(repo.profile(code) is None for code in ALLOWED_ETFS):
-                seed_demo(repo, as_of_date)
-            return compare_etfs(repo, list(ALLOWED_ETFS), as_of_date, mode)
-        finally:
-            repo.close()
-
-    @api.post("/api/v1/research", tags=["research"], dependencies=[Depends(require_write_access)])
-    def research(request: ResearchRequest):
-        if request.etf_code not in ALLOWED_ETFS:
-            raise HTTPException(status_code=422, detail="不支持的ETF代码")
-        repo = open_repo(request.mode)
-        try:
-            if request.mode == "demo" and repo.profile(request.etf_code) is None:
-                seed_demo(repo, request.as_of_date)
-            if request.mode == "live":
-                seed_profile(repo, request.etf_code)
-            tools = ResearchTools(repo, request.mode)
-            agent = (ModelDrivenResearchAgent(tools) if request.method == "ai"
-                     else SingleResearchAgent(tools))
-            state = agent.run(request.question, request.etf_code, request.as_of_date)
-            return {"task_id": state.task_id, "report": state.final_report}
-        except ValueError as exc:
+            planning = EventResearchOrchestrator(path).run(
+                request.question, request.subject_code, request.as_of_date, request.window_start)
+            graph = EventGraphBuilder(path, event_graph_path or EVENT_GRAPH_DATABASE_PATH).build(planning)
+            return {"source_kind": source_kind, "graph": graph.model_dump(mode="json")}
+        except (ValueError, FileNotFoundError) as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         except RuntimeError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
-        finally:
-            repo.close()
 
-    @api.post("/api/v1/sync/{etf_code}", tags=["monitoring"],
+    @api.get("/api/v1/event-research/timeline", tags=["event research"])
+    def latest_event_timeline(subject_code: str, as_of_date: date | None = None):
+        if subject_code not in EVENT_SUBJECTS:
+            raise HTTPException(status_code=422, detail="研究对象不在支持范围内")
+        try:
+            store = EventGraphStore(event_graph_path or EVENT_GRAPH_DATABASE_PATH, readonly=True)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="尚无已保存的事件时间线") from None
+        try:
+            graph = store.latest(subject_code, as_of_date.isoformat() if as_of_date else None)
+        finally:
+            store.close()
+        if graph is None:
+            raise HTTPException(status_code=404, detail="该公司尚无已保存的事件时间线")
+        return {"graph": graph.model_dump(mode="json")}
+
+    @api.post("/api/v1/event-research/debate/build", tags=["event research"],
               dependencies=[Depends(require_write_access)])
-    def sync_etf(etf_code: str, request: SyncRequest):
-        if etf_code not in ALLOWED_ETFS:
-            raise HTTPException(status_code=422, detail="不支持的ETF代码")
-        if request.start_date > request.end_date:
-            raise HTTPException(status_code=422, detail="开始日期不能晚于结束日期")
-        repo = open_repo("live")
+    def build_event_debate(request: EventDebateRequest):
+        source, source_kind = source_path_and_kind()
         try:
-            if repo.profile(etf_code) is None:
-                seed_profile(repo, etf_code)
-            return sync_market_data(repo, etf_code, request.start_date,
-                                    request.end_date).model_dump(mode="json")
-        finally:
-            repo.close()
+            run = EventHypothesisDebate(source,
+                event_graph_path or EVENT_GRAPH_DATABASE_PATH,
+                event_debate_path or EVENT_DEBATE_DATABASE_PATH).build(request.graph_run_id)
+            return {"source_kind": source_kind, "debate": public_debate_payload(run)}
+        except (ValueError, FileNotFoundError) as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    @api.get("/api/v1/reports", tags=["archive"])
-    def reports(mode: Mode = "demo", limit: int = Query(20, ge=1, le=100),
-                offset: int = Query(0, ge=0)):
-        repo = open_repo(mode)
+    @api.get("/api/v1/event-research/debate", tags=["event research"])
+    def latest_event_debate(subject_code: str, as_of_date: date | None = None):
+        if subject_code not in EVENT_SUBJECTS:
+            raise HTTPException(status_code=422, detail="研究对象不在支持范围内")
         try:
-            items = repo.list_reports(limit, offset)
-            return {"mode": mode, "count": len(items), "offset": offset, "items": items}
+            store = EventDebateStore(event_debate_path or EVENT_DEBATE_DATABASE_PATH,
+                                     readonly=True)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="尚无已保存的研究报告") from None
+        try:
+            run = store.latest(subject_code, as_of_date.isoformat() if as_of_date else None)
         finally:
-            repo.close()
+            store.close()
+        if run is None:
+            raise HTTPException(status_code=404, detail="该公司尚无已保存的研究报告")
+        return {"debate": public_debate_payload(run)}
 
-    @api.get("/api/v1/reports/{task_id}", tags=["archive"])
-    def report(task_id: str, mode: Mode = "demo"):
-        repo = open_repo(mode)
+    @api.get("/api/v1/event-research/debate/{run_id}", tags=["event research"])
+    def event_debate_by_id(run_id: str):
         try:
-            item = repo.get_report(task_id)
-            if not item:
-                raise HTTPException(status_code=404, detail="报告不存在")
-            return item
+            store = EventDebateStore(event_debate_path or EVENT_DEBATE_DATABASE_PATH,
+                                     readonly=True)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="尚无已保存的研究报告") from None
+        try:
+            run = store.get(run_id)
         finally:
-            repo.close()
+            store.close()
+        if run is None:
+            raise HTTPException(status_code=404, detail="研究报告不存在")
+        return {"debate": public_debate_payload(run)}
 
-    @api.get("/api/v1/reports/{task_id}/pdf", tags=["archive"])
-    def report_pdf(task_id: str, mode: Mode = "demo"):
-        repo = open_repo(mode)
+    @api.get("/api/v1/event-research/timeline/{run_id}", tags=["event research"])
+    def event_timeline_by_id(run_id: str):
         try:
-            item = repo.get_report(task_id)
-            if not item:
-                raise HTTPException(status_code=404, detail="报告不存在")
-            payload = render_report_pdf(item["report"], task_id)
-            filename = report_pdf_filename(item["report"])
-            return Response(payload, media_type="application/pdf",
-                headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+            store = EventGraphStore(event_graph_path or EVENT_GRAPH_DATABASE_PATH, readonly=True)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="尚无已保存的事件时间线") from None
+        try:
+            graph = store.get(run_id)
         finally:
-            repo.close()
+            store.close()
+        if graph is None:
+            raise HTTPException(status_code=404, detail="事件时间线不存在")
+        return {"graph": graph.model_dump(mode="json")}
 
-    @api.get("/api/v1/monitor/runs", tags=["monitoring"])
-    def monitor_runs(mode: Mode = "live", limit: int = Query(20, ge=1, le=100)):
-        repo = open_repo(mode)
-        try:
-            return {"mode": mode, "items": [item.model_dump(mode="json") for item in repo.recent_monitor_runs(limit)]}
-        finally:
-            repo.close()
+    # A built frontend and API share one origin for the one-command demo.
+    web = PROJECT_ROOT / "frontend" / "dist"
+    if web.is_dir():
+        api.mount("/assets", StaticFiles(directory=web / "assets"), name="assets")
 
-    @api.get("/api/v1/monitor/scheduled", tags=["monitoring"])
-    def scheduled_runs(mode: Mode = "live", limit: int = Query(20, ge=1, le=100)):
-        repo = open_repo(mode)
-        try:
-            return {"mode": mode, "items": [item.model_dump(mode="json") for item in repo.recent_scheduled_runs(limit)]}
-        finally:
-            repo.close()
-
-    @api.get("/api/v1/monitor/sync", tags=["monitoring"])
-    def sync_runs(mode: Mode = "live", limit: int = Query(50, ge=1, le=200)):
-        repo = open_repo(mode)
-        try:
-            return {"mode": mode, "items": [item.model_dump(mode="json") for item in repo.recent_sync_runs(limit)]}
-        finally:
-            repo.close()
-
-    @api.get("/api/v1/monitor/alerts", tags=["monitoring"])
-    def alerts(mode: Mode = "live", limit: int = Query(50, ge=1, le=200)):
-        repo = open_repo(mode)
-        try:
-            return {"mode": mode, "items": [item.model_dump(mode="json") for item in repo.recent_monitor_alerts(limit)]}
-        finally:
-            repo.close()
-
-    @api.post("/api/v1/monitor/run", tags=["monitoring"], dependencies=[Depends(require_write_access)])
-    def monitor(request: MonitorRequest):
-        if request.mode != "live" and request.sync_live:
-            raise HTTPException(status_code=422, detail="演示模式不能联网同步")
-        repo = open_repo(request.mode)
-        try:
-            if request.mode == "demo" and any(repo.profile(code) is None for code in ALLOWED_ETFS):
-                seed_demo(repo, request.as_of_date)
-            result = run_monitor_once(repo, request.as_of_date, request.mode,
-                                      sync_live=request.sync_live and request.mode == "live")
-            return result.model_dump(mode="json")
-        finally:
-            repo.close()
-
-    @api.get("/api/v1/settings", tags=["settings"])
-    def settings():
-        repo = open_settings_repo()
-        try:
-            return repo.user_settings().model_dump(mode="json")
-        finally:
-            repo.close()
-
-    @api.put("/api/v1/settings", tags=["settings"], dependencies=[Depends(require_write_access)])
-    def update_settings(settings: UserSettings):
-        if settings.default_etf not in ALLOWED_ETFS:
-            raise HTTPException(status_code=422, detail="默认ETF不受支持")
-        repo = open_settings_repo()
-        try:
-            return repo.save_user_settings(settings).model_dump(mode="json")
-        finally:
-            repo.close()
+        @api.get("/{web_path:path}", include_in_schema=False)
+        def frontend(web_path: str):
+            from fastapi.responses import FileResponse
+            if web_path.startswith("api/"):
+                raise HTTPException(status_code=404, detail="接口不存在")
+            return FileResponse(web / "index.html")
 
     return api
 
