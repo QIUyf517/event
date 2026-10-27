@@ -1,7 +1,6 @@
-"""Bounded, model-planned evidence collection for company event research.
+"""在限定范围内，由模型规划企业事件研究的证据采集。
 
-This stage returns a plan and source excerpts. It does not publish event
-timelines, causal explanations or a final research judgement.
+本阶段返回研究计划和原文摘录，不发布事件时间线、因果解释或最终研究判断。
 """
 
 from __future__ import annotations
@@ -33,7 +32,7 @@ MAX_TOTAL_TOKENS = 3000
 MAX_SECONDS = 30
 MAX_MODEL_OUTPUT_TOKENS = 1500
 MAX_ESTIMATED_USD = 0.01
-DEEPSEEK_FLASH_PRICES = (0.30, 1.20)  # Peak USD per 1M tokens, checked 2026-10-12.
+DEEPSEEK_FLASH_PRICES = (0.30, 1.20)  # 每百万 Token 的峰时美元单价，核对日期为 2026-10-12。
 
 
 class EventPlanningRun(BaseModel):
@@ -56,7 +55,7 @@ class EventPlanningRun(BaseModel):
 
 
 class EventResearchOrchestrator:
-    """The LLM chooses a typed DAG; Python enforces scope and runs read-only tools."""
+    """大模型选择结构化有向无环任务图，Python 校验范围并执行只读工具。"""
 
     def __init__(self, database_path: Path, llm: OpenAICompatibleClient | None = None):
         self.database_path = Path(database_path)
@@ -97,7 +96,7 @@ class EventResearchOrchestrator:
                 raise RuntimeError("未知模型必须配置输入和输出 Token 单价，才能执行费用预算") from exc
         if input_rate < 0 or output_rate < 0:
             raise ValueError("模型单价不能为负")
-        # UTF-8 byte count plus protocol allowance is conservative for this text-only request.
+        # 对纯文本请求，以 UTF-8 字节数加上协议开销进行保守估算。
         input_bound = sum(len(item["content"].encode("utf-8")) for item in messages) + 1000
         preflight_cost = (input_bound * input_rate + MAX_MODEL_OUTPUT_TOKENS * output_rate) / 1_000_000
         if preflight_cost > cap:

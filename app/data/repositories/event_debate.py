@@ -1,4 +1,4 @@
-"""Separate store for source-bound hypothesis and counter-review runs."""
+"""独立存储与来源绑定的假设生成及反方核验记录。"""
 
 from __future__ import annotations
 

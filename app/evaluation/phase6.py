@@ -1,8 +1,8 @@
-"""Paired synthetic-scenario ablation, intentionally separate from real sources.
+"""合成场景的配对消融实验，与真实来源评测分开处理。
 
-Only questions, synthetic records and a shared event-label vocabulary reach the
-models. Gold answers, expected keys, forbidden phrases and rubrics do not.
-This measures a controlled prompting ablation, not production pipeline accuracy.
+模型仅接收问题、合成记录和共用的事件标签词表，
+不会接收标准答案、预期字段、禁用表述或评分标准。
+本实验衡量受控条件下的提示词消融效果，不代表正式研究流程的准确率。
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from app.llm.client import OpenAICompatibleClient
 
 def records_for(case):
     records = [{"id": "scenario-1", "published_at": str(case.as_of_date), "text": case.scenario}]
-    # These are authored synthetic fixtures, never fetched company disclosures.
+    # 这些是人工编写的合成测试数据，并非采集到的企业披露资料。
     if case.id == "future_post_cutoff_announcement":
         records = [{"id": "news-0928", "published_at": "2026-09-28", "text": "9月28日新闻提及经营情况，未提供9月经营公告。"},
                    {"id": "announcement-1002", "published_at": "2026-10-02", "text": "10月2日发布9月经营公告。"}]
@@ -40,8 +40,8 @@ def packet_for(case, vocabulary):
 
 
 def expected_tools(case):
-    # Rubric is never sent to a model. It is a permissive relevance check, not
-    # proof of successful tool execution (this harness does not execute tools).
+    # 评分标准不会发送给模型；这里只进行较宽松的相关性检查，
+    # 不能据此证明工具执行成功，因为本评测程序不执行工具。
     if case.category == "公告解读":
         return {"search_announcements", "search_financial_materials", "search_all_materials"}
     if case.category == "候选原因":
@@ -145,7 +145,7 @@ def run_experiment(output: Path, repeats=2, methods=("rules", "single", "multi")
     for repeat in range(repeats):
         for case in cases:
             packet = packet_for(case, vocabulary)
-            # Rotate paid method order to reduce fixed order effects.
+            # 轮换付费方法的执行顺序，减少固定顺序带来的影响。
             order = list(methods) if repeat % 2 == 0 else list(reversed(methods))
             for method in order:
                 start = monotonic()

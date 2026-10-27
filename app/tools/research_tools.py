@@ -4,7 +4,7 @@ from app.data.repositories.sqlite import SQLiteRepository
 EVENT_SUBJECTS = {"600519", "601318", "688981"}
 
 class EventResearchTools:
-    """Read-only tools for traceable company event material."""
+    """用于检索可追溯企业事件资料的只读工具。"""
 
     def __init__(self, repo: SQLiteRepository):
         self.repo = repo
@@ -31,7 +31,7 @@ class EventResearchTools:
 
     def get_company_market_data(self, query: str, subject_id: str, start_date: date,
                                 end_date: date, limit: int = 10):
-        """Return saved historical bars only; query is a planner label, never a symbol override."""
+        """仅返回已保存的历史行情；query 只是规划标签，不能覆盖证券代码。"""
         self._check_subject(subject_id)
         return self.repo.company_market(subject_id, start_date, end_date, limit)
 

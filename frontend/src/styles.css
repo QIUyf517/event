@@ -15,7 +15,7 @@
   --red: #a54842;
 }
 
-/* Research workflow: a cool, quiet workbench with an explicit process spine. */
+/* 研究流程：以冷色调、简洁的工作台呈现清晰的流程主线。 */
 .research-page { --paper: #f8fafc; --paper-deep: #edf2f7; --jade: #245e91; --jade-dark: #18466e; --line: #ccd8e3; color: #203347; }
 .research-heading { margin-bottom: 28px; }
 .research-heading h1 { font: 650 clamp(25px, 3vw, 40px)/1.4 "Microsoft YaHei", sans-serif; margin: 0; letter-spacing: -.03em; }

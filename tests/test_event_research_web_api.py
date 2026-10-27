@@ -1,4 +1,4 @@
-"""The web search must use the phase-two corpus without changing it."""
+"""网页检索必须使用第二阶段语料，且不得修改该语料。"""
 
 from datetime import date
 

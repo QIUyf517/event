@@ -1,4 +1,4 @@
-"""Build React and serve a self-contained, read-only historical demo."""
+"""构建 React 页面，并提供包含演示数据的只读历史演示。"""
 from __future__ import annotations
 import argparse
 import json
@@ -27,7 +27,7 @@ def main():
         subprocess.run([npm, "run", "build"], cwd=ROOT / "frontend", check=True)
     demo_dir = ROOT / "output/event-phase6-demo"
     demo_dir.mkdir(parents=True, exist_ok=True)
-    # Set before importing app.config. Demo can never make a paid model call.
+    # 在导入 app.config 前设置，确保演示无法发起付费模型调用。
     os.environ.update(LLM_ENABLED="false", EVENT_DEMO_MODE="true",
         EVENT_RESEARCH_DATABASE_PATH=str(demo_dir / "sources.sqlite3"),
         EVENT_GRAPH_DATABASE_PATH=str(demo_dir / "graphs.sqlite3"),

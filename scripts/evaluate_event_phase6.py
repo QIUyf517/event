@@ -1,4 +1,4 @@
-"""Run the controlled synthetic benchmark; --live explicitly enables paid calls."""
+"""运行受控的合成题基准；需通过 --live 显式启用付费调用。"""
 import argparse
 import sys
 from pathlib import Path

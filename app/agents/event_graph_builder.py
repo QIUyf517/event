@@ -1,4 +1,4 @@
-"""Extract source-anchored event facts and consolidate a bounded timeline."""
+"""提取可定位到原文的事件事实，并整理指定范围内的时间线。"""
 
 from __future__ import annotations
 
@@ -49,7 +49,7 @@ def _key(value: str) -> str:
 
 
 def _locate_quote(source: str, proposed: str) -> str | None:
-    """Map PDF line-wrap/width differences back to exact saved source bytes."""
+    """将 PDF 换行和字符宽度差异映射回已保存原文中的精确位置。"""
     if proposed in source:
         return proposed
     normalized, positions = [], []
@@ -132,7 +132,7 @@ def _quoted_date(quote: str, requested: date) -> bool:
 
 
 def _occurrence_date_supported(quote: str, requested: date) -> bool:
-    """Require the quoted date to describe an action, not a document signature."""
+    """要求引文中的日期描述实际行动，而非文件落款日期。"""
     normalized = unicodedata.normalize("NFKC", quote)
     action = re.compile(r"召开|审议|通过|完成|收到|签署|登记|上市|实施|发布|公布|披露|决定|举行|生效|出具")
     for match in DATE_RE.finditer(normalized):
@@ -155,7 +155,7 @@ def _occurrence_date_supported(quote: str, requested: date) -> bool:
 
 
 def _located_number(value: str, quote: str) -> str | None:
-    """Return only a numeric span that exists in the exact source quote."""
+    """仅返回原文引句中确实存在的数值片段。"""
     if value in quote and _number(value) is not None:
         return value
     candidates = sorted(NUMBER_FRAGMENT_RE.findall(value),
@@ -163,7 +163,7 @@ def _located_number(value: str, quote: str) -> str | None:
     for candidate in candidates:
         if candidate not in quote:
             continue
-        # Preserve a unit when it really follows this number in the quote.
+        # 仅当单位确实紧随引文中的数值时，才保留该单位。
         unit_match = re.search(re.escape(candidate) + r"\s*(万亿元|亿元|万元|千元|元|亿股|万股|股|%|％|万|亿|手|倍)", quote)
         literal = unit_match.group(0) if unit_match else candidate
         if _number(literal) is not None:
@@ -238,7 +238,7 @@ def _quarter_profit_check(content: str, attribute: str, target: str,
 
 
 def _supplement_resolutions(items: list[dict], chunks: dict[str, dict]) -> list[dict]:
-    """Cover numbered board resolutions omitted by a bounded model response."""
+    """补充模型因输出限制而遗漏的编号董事会决议。"""
     result = list(items)
     covered = [_key(str(item.get("quote", ""))) for item in items if isinstance(item, dict)]
     pattern = re.compile(r"[一二三四五六七八九十]+、(?:逐项)?审议通过了?《[^》]{5,180}》")
@@ -264,7 +264,7 @@ def _supplement_resolutions(items: list[dict], chunks: dict[str, dict]) -> list[
 
 def _supplement_quarter_mismatch(items: list[dict], chunks: dict[str, dict],
                                  subject_name: str, year: int) -> list[dict]:
-    """Keep a sourced quarter arithmetic conflict even if the model omits it."""
+    """保留有原文依据的季度数值计算冲突，即使模型遗漏了该冲突。"""
     result = list(items)
     if any(("第二季度" in str(item.get("title", "")) or "二季度" in str(item.get("title", "")))
            and "净利润" in str(item.get("attribute", "")) for item in result if isinstance(item, dict)):
@@ -294,7 +294,7 @@ def _supplement_quarter_mismatch(items: list[dict], chunks: dict[str, dict],
 
 def _supplement_explicit_disclosure(items: list[dict], chunks: dict[str, dict],
                                     subject_name: str, year: int) -> list[dict]:
-    """Preserve a company's dated disclosure action even when extraction selects only metrics."""
+    """即使模型只提取指标，也保留原文中带日期的公司披露行为。"""
     result = list(items)
     for evidence_id, row in chunks.items():
         if row["document_type"] != "financial":
@@ -327,7 +327,7 @@ def _supplement_explicit_disclosure(items: list[dict], chunks: dict[str, dict],
 
 
 class EventGraphBuilder:
-    """The model suggests facts; Python binds every accepted fact to saved bytes."""
+    """模型提出候选事实，Python 将每条采纳的事实绑定到已保存的原文。"""
 
     def __init__(self, source_database: str | Path, graph_database: str | Path,
                  llm: OpenAICompatibleClient | None = None):
@@ -376,8 +376,8 @@ class EventGraphBuilder:
                     continue
                 selected[evidence.evidence_id] = dict(row)
                 selected_documents.add(row["document_id"])
-            # Stage three may retrieve an irrelevant page of a long report. Rank
-            # chunks inside those same authorized documents before extraction.
+            # 第三阶段可能检索到长报告中不相关的页面，因此在提取前，
+            # 对同一批已获准访问的文档内部切片重新排序。
             focused: dict[str, dict] = {}
             for document_id in sorted(selected_documents):
                 if len(focused) >= MAX_EVIDENCE_CHUNKS:
@@ -425,9 +425,9 @@ class EventGraphBuilder:
                         score += 1
                     ranked.append((score, evidence_id, candidate))
                 ranked.sort(key=lambda item: (-item[0], item[1]))
-                # Board and exchange announcements are short enough to inspect
-                # in full. Otherwise a middle-page resolution can disappear
-                # simply because two earlier pages scored more keywords.
+                # 董事会和交易所公告较短，可以完整检查。
+                # 否则，仅因前两页命中了更多关键词，
+                # 中间页面的决议就可能被遗漏。
                 limit = (len(ranked) if candidates[0]["document_type"] == "announcement"
                          else MAX_CHUNKS_PER_DOCUMENT)
                 for _, evidence_id, candidate in ranked[:limit]:

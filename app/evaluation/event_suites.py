@@ -1,4 +1,4 @@
-"""Keep synthetic answer benchmarks separate from real-source availability checks."""
+"""将合成题回答基准与真实来源可用性检查分开处理。"""
 
 from __future__ import annotations
 
@@ -53,7 +53,7 @@ def load_real_snapshot_cases(path: Path = REAL_CASES_PATH) -> list[RealSnapshotC
 
 
 def audit_event_suites(database_path: Path) -> dict:
-    """Audit corpus readiness only; never assign real runs synthetic gold answers."""
+    """仅检查语料是否就绪，不将合成题标准答案用于真实来源研究。"""
     synthetic = load_event_cases()
     real = load_real_snapshot_cases()
     result = {

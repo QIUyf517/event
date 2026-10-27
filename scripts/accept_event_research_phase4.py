@@ -1,7 +1,7 @@
-"""Run phase-four extraction against an isolated copy of the phase-three snapshot.
+"""在第三阶段快照的独立副本上运行第四阶段事件提取。
 
-This command never changes the source database and never collects online data.
-It makes bounded model calls for the selected cases and writes only to output_dir.
+本命令不修改来源数据库，也不联网采集资料。
+它对选定用例执行受限的模型调用，结果仅写入 output_dir。
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ CASES = {
 
 
 class SavedExtractionBuilder(EventGraphBuilder):
-    """Recheck saved model output after deterministic grouping changes."""
+    """确定性归组规则变更后，重新检查已保存的模型输出。"""
 
     def __init__(self, source_database, graph_database, raw_items, prior_graph):
         super().__init__(source_database, graph_database)

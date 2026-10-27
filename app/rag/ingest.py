@@ -85,7 +85,7 @@ def build_document(payload: bytes, filename: str, title: str, publisher: str, pu
     return document, chunks
 
 def fetch_event_document(url: str, source_id: str, **metadata) -> tuple[bytes, str, Document, list[DocumentChunk]]:
-    """Download and parse an allow-listed event source without writing the database."""
+    """下载并解析白名单内的事件来源，不写入数据库。"""
     source = validate_source_url(source_id, url)
     material_type = metadata.pop("material_type", None) or source["source_type"]
     if material_type not in {"announcement", "news", "financial"}:
@@ -118,7 +118,7 @@ def fetch_event_document(url: str, source_id: str, **metadata) -> tuple[bytes, s
 
 def collect_event_document(repo: SQLiteRepository, url: str, source_id: str,
                            snapshot_dir: str | Path | None = None, **metadata) -> tuple[Document, DocumentStoreResult]:
-    """User-triggered collection that preserves the raw response before canonical storage."""
+    """由用户触发资料采集，在规范化入库前保存原始响应。"""
     payload, filename, document, chunks = fetch_event_document(url, source_id, **metadata)
     snapshots = Path(snapshot_dir or PROJECT_ROOT / "data" / "event_snapshots")
     snapshots.mkdir(parents=True, exist_ok=True)

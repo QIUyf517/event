@@ -1,4 +1,4 @@
-"""Run four bounded real-model planning cases on the isolated saved snapshot."""
+"""在独立保存的快照上，运行四个受限的真实模型规划用例。"""
 
 from __future__ import annotations
 

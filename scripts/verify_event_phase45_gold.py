@@ -1,4 +1,4 @@
-"""Check the fixed historical sample against a reviewed event/fact ledger."""
+"""依据已复核的事件与事实底稿，检查固定历史样本。"""
 
 from __future__ import annotations
 

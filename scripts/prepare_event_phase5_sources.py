@@ -1,4 +1,4 @@
-"""Add three public announcements to a new SQLite backup, never to the source."""
+"""向新建的 SQLite 备份补入三份公开公告，不修改来源数据库。"""
 
 from __future__ import annotations
 

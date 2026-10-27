@@ -1,7 +1,7 @@
-"""User-triggered local workflow with durable stage snapshots.
+"""由用户触发的本地研究流程，持久化保存各阶段快照。
 
-Jobs run in-process, not in a scheduler. A process restart marks unfinished jobs
-interrupted; reading a saved run never resumes paid model calls.
+任务在当前进程内运行，不使用定时调度器。进程重启后将未完成任务标记为中断；
+读取已保存的研究记录不会恢复付费模型调用。
 """
 from __future__ import annotations
 
@@ -89,7 +89,7 @@ def execute_run(run: dict, store: WorkflowStore, source: Path, graph_path: Path,
             stage.update(status="completed", elapsed_seconds=round(monotonic() - stage_start, 3))
             run["elapsed_seconds"] = round(monotonic() - started, 3)
             store.save(run)
-        run["status"] = "partial"  # The saved interpretation is not independently validated.
+        run["status"] = "partial"  # 已保存的解释尚未经过独立验证。
     except Exception as exc:
         stage.update(status="failed", elapsed_seconds=round(monotonic() - stage_start, 3))
         run.update(status="failed", stop_reason=f"{type(exc).__name__}：研究中止，已保留完成阶段。")

@@ -14,7 +14,7 @@ class OpenAICompatibleClient:
     def chat(self, messages: list[dict], *, tools: list[dict] | None = None,
              json_output: bool = False, max_tokens: int = 1200,
              require_tool: bool = False, thinking: bool | None = None) -> dict:
-        """One bounded Chat Completions request; callers validate every tool argument."""
+        """执行一次受限的 Chat Completions 请求；调用方负责校验每个工具参数。"""
         if not self.configured:
             raise RuntimeError("尚未配置模型地址、模型名称或 API Key")
         body = {"model": self.model, "messages": messages, "max_tokens": max_tokens}

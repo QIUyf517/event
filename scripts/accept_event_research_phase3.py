@@ -1,4 +1,4 @@
-"""Create an isolated Phase 3 database and collect dated company market bars."""
+"""创建第三阶段独立数据库，并采集带日期的公司历史行情。"""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Separate, transactional SQLite store for phase-four event graphs."""
+"""第四阶段事件图谱的独立 SQLite 存储，支持事务。"""
 
 from __future__ import annotations
 

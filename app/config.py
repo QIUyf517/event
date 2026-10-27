@@ -1,4 +1,4 @@
-"""Configuration for the company event research application."""
+"""企业事件研究应用的配置。"""
 
 from pathlib import Path
 import os

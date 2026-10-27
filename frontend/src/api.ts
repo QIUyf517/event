@@ -27,7 +27,7 @@ async function request<T>(path: string, init?: RequestInit, modelCall = false): 
       const payload = await response.json();
       if (payload.detail) detail = String(payload.detail);
     } catch {
-      // Keep the status based fallback when the response is not JSON.
+      // 响应不是 JSON 时，保留基于状态码的备用错误提示。
     }
     throw new Error(detail);
   }

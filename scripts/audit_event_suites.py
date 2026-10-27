@@ -1,4 +1,4 @@
-"""Print an offline audit with synthetic and real-source results kept separate."""
+"""输出离线审计结果，分别列出合成题与真实来源的检查结果。"""
 
 import argparse
 import json

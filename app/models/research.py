@@ -1,4 +1,4 @@
-"""Source document models shared by event collection and retrieval."""
+"""事件资料采集与检索共用的来源文档模型。"""
 
 from datetime import date, datetime
 from typing import Literal

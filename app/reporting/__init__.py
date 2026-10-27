@@ -1,1 +1,1 @@
-"""Public, evidence-bound research views."""
+"""以证据为依据、面向用户展示的研究视图。"""

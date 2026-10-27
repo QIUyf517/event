@@ -1,4 +1,4 @@
-"""Phase-four acceptance cases exercise source binding, conflicts and persistence."""
+"""第四阶段验收用例，覆盖来源绑定、冲突处理和持久化。"""
 
 import hashlib
 import json

@@ -1,4 +1,4 @@
-"""HTTP API for bounded company event research."""
+"""提供限定范围内企业事件研究的 HTTP API。"""
 
 from __future__ import annotations
 
@@ -299,7 +299,7 @@ def create_app(write_key: str | None = API_WRITE_KEY,
             raise HTTPException(status_code=404, detail="事件时间线不存在")
         return {"graph": graph.model_dump(mode="json")}
 
-    # A built frontend and API share one origin for the one-command demo.
+    # 构建后的前端与 API 共用同一来源地址，支持一条命令启动演示。
     web = PROJECT_ROOT / "frontend" / "dist"
     if web.is_dir():
         api.mount("/assets", StaticFiles(directory=web / "assets"), name="assets")

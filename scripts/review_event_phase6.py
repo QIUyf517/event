@@ -1,8 +1,8 @@
-"""Interactive human review of the 20 synthetic scenario runs.
+"""对 20 道合成场景题的运行结果进行交互式人工复核。
 
-The script displays the exact saved answer beside the held-out rubric. It never
-assigns a verdict itself and never calls a model. A named human must enter each
-decision. Review state is saved after every decision so work can resume.
+脚本并排展示已保存的原始答案和未提供给模型的评分标准。
+它不自行判定结果，也不调用模型；每项结论均须由具名复核者输入。
+每次判定后保存复核状态，以便后续继续。
 """
 from __future__ import annotations
 

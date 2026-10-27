@@ -1,4 +1,4 @@
-"""Explicit local commands for company source collection and event research."""
+"""企业资料采集与事件研究的本地命令，由用户显式触发。"""
 
 import argparse
 import json

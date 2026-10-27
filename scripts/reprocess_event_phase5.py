@@ -1,4 +1,4 @@
-"""Reapply current deterministic quality rules to saved phase-five model output."""
+"""将当前确定性质量规则重新应用于已保存的第五阶段模型输出。"""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Render a conservative public view; legacy model prose is never evidence."""
+"""生成保守的公开研究视图；旧模型生成的自由文本不能作为证据。"""
 
 from app.models.event_research import EventDebateRun
 from app.agents.typed_hypothesis import ALTERNATIVE_TEXT, KIND_TEXT
@@ -27,7 +27,7 @@ def _typed_statement(run: EventDebateRun, hypothesis) -> str:
         occurred = (event.occurred_at.isoformat() if event.date_status == "known"
                     and event.occurred_at and event.occurred_at <= run.graph.as_of_date
                     else "未确认")
-        # These are graph fields, not facts newly asserted by the language model.
+        # 这些内容来自图谱字段，不是语言模型新提出的事实。
         rows.append(f"图谱候选事件「{event.title[:80]}」：发生日{occurred}；"
                     f"所引资料发布日期{source.published_at.isoformat()}。")
     return ("".join(rows[:3]) + "与研究问题的关系尚未验证。") if rows else KIND_TEXT["evidence_gap"]
@@ -38,8 +38,8 @@ def public_debate(run: EventDebateRun) -> dict:
     payload.pop("report_draft", None)
     for source in payload["graph"]["sources"]:
         source.pop("snapshot_path", None)
-    # Claim selection remains a model judgement. Dates, values and source types
-    # are read directly from the graph by the UI, never restated by free prose.
+    # 主张的选择仍属于模型判断；界面直接从图谱读取日期、
+    # 数值和来源类型，不通过自由文本重新表述这些信息。
     typed = run.interpretation_schema == "typed_selection_v1"
     for hypothesis, original in zip(payload["hypotheses"], run.hypotheses):
         hypothesis["statement"] = (_typed_statement(run, original) if typed else

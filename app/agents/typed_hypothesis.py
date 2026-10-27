@@ -1,4 +1,4 @@
-"""Typed hypothesis selection: the model chooses relationships, never fact prose."""
+"""结构化假设选择：模型仅选择关系，不生成自由表述的事实文本。"""
 from __future__ import annotations
 
 from app.agents.hypothesis_debate import (CAUSAL_QUESTION, EventHypothesisDebate,
@@ -35,7 +35,7 @@ FINDING_TEXT = {
 
 
 class TypedEventHypothesisDebate(EventHypothesisDebate):
-    """Production path for new runs; old runs remain readable but unpublished."""
+    """新研究运行使用的正式执行路径；旧运行记录仍可读取，但不直接发布。"""
 
     def _propose(self, packet: dict, graph: EventGraphRun) -> list[DebateHypothesis]:
         raw = self._ask(
@@ -76,8 +76,8 @@ class TypedEventHypothesisDebate(EventHypothesisDebate):
                 self.protocol_warnings.append("纯事件问题出现市场或行业解释，已丢弃")
                 continue
             if kind != "event_candidate" and support:
-                # Company-event claims cannot themselves support a market factor
-                # or an absence-of-evidence proposition.
+                # 公司事件主张本身不能作为市场因素的支持证据，
+                # 也不能支持关于证据缺失的命题。
                 support = []
                 self.protocol_warnings.append("非事件方向的支持主张缺少对应证据类型，已移除")
             key = (kind, tuple(sorted(support)), tuple(sorted(counter)))
@@ -93,7 +93,7 @@ class TypedEventHypothesisDebate(EventHypothesisDebate):
                 alternative_explanations=[ALTERNATIVE_TEXT[value] for value in alternatives],
                 assessment="insufficient"))
         if not result:
-            # A malformed model answer never becomes an unreviewed free-text claim.
+            # 格式不合法的模型回答不能转化为未经审核的自由文本主张。
             result = [DebateHypothesis(
                 hypothesis_id="h1", statement=KIND_TEXT["evidence_gap"],
                 interpretation_kind="evidence_gap", assessment="cannot_judge",
@@ -137,7 +137,7 @@ class TypedEventHypothesisDebate(EventHypothesisDebate):
             if set(claims) - known_c or set(hits) - known_hits:
                 self.protocol_warnings.append("结构化反方引用无效，已丢弃")
                 continue
-            # A contradiction label needs a graph conflict, not merely two numbers.
+            # 标记矛盾需要图谱中的冲突依据，不能仅凭两个数值。
             if kind == "contradiction" and not any(
                     set(claims) & set(conflict.claim_ids) for conflict in graph.conflicts):
                 kind = "unresolved"
@@ -176,7 +176,7 @@ class TypedEventHypothesisDebate(EventHypothesisDebate):
         run.conclusion.reason_codes = self.report_reason_codes
         from app.models.event_research import EventDebateRun
         run = EventDebateRun.model_validate(run.model_dump(mode="json"))
-        # Preserve the same saved object seen by read-only API endpoints.
+        # 保持与只读 API 接口所见的已保存对象一致。
         from app.data.repositories.event_debate import EventDebateStore
         store = EventDebateStore(self.debate_database)
         try:

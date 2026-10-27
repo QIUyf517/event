@@ -1,4 +1,4 @@
-"""Replay the typed stage-five path on fixed graphs; prepare human review packets."""
+"""在固定图谱上重跑第五阶段结构化处理流程，并准备人工复核材料。"""
 from __future__ import annotations
 
 import argparse
@@ -162,7 +162,7 @@ def run(source: Path = SOURCE, graph_dir: Path = GRAPH_DIR, output: Path = OUTPU
 
 
 def prepare_saved_reviews(directory: Path):
-    """Refresh review templates from saved runs without making model calls."""
+    """根据已保存的运行记录更新复核模板，不调用模型。"""
     for case in CASES:
         debate_file = directory / f"debate_{case}.json"
         public_file = directory / f"public_{case}.json"

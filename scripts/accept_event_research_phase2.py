@@ -1,4 +1,4 @@
-"""Collect the fixed phase-two public-source sample into an isolated database."""
+"""将第二阶段固定的公开来源样本采集到独立数据库。"""
 
 from __future__ import annotations
 

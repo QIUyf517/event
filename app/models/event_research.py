@@ -1,8 +1,7 @@
-"""Typed contracts for the AI-native company event research workflow.
+"""以大模型为核心的企业事件研究流程所使用的结构化数据契约。
 
-Phase one defines the boundary between source facts, model inferences and the
-final judgement.  Collection, persistence and orchestration are intentionally
-left to later phases.
+第一阶段定义来源事实、模型推断与最终判断之间的边界。
+资料采集、持久化和流程编排由后续阶段实现。
 """
 
 from __future__ import annotations
@@ -133,7 +132,7 @@ class EventResearchTrace(BaseModel):
 
 
 class EventResearchReport(BaseModel):
-    """Complete output contract evaluated by the phase-one benchmark."""
+    """供第一阶段基准评测使用的完整输出契约。"""
 
     schema_version: Literal["event-research-v1"] = "event-research-v1"
     research_id: str

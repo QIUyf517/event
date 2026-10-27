@@ -1,4 +1,4 @@
-"""Phase-five behavior with isolated source, graph, and report stores."""
+"""使用独立的来源库、图谱库和报告库测试第五阶段行为。"""
 
 from __future__ import annotations
 

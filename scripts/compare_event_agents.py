@@ -1,4 +1,4 @@
-"""Real-source, paired single/multi hypothesis comparison on saved graphs."""
+"""基于真实来源的已保存图谱，进行单智能体与多智能体假设阶段的配对比较。"""
 import argparse
 import json
 import sys
@@ -38,7 +38,7 @@ def main():
         store.save(graph)
     store.close()
     import os
-    # Both treatments use the same explicit per-run cap.
+    # 两组均使用相同且明确的单次运行费用上限。
     cap = min(.08, args.budget_usd / (len(graphs) * args.repeats * 2))
     os.environ["EVENT_DEBATE_MAX_USD_PER_RUN"] = str(cap)
     rows, cost = [], 0.0

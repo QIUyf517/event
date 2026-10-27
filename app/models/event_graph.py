@@ -1,4 +1,4 @@
-"""Auditable event timeline built from saved company documents."""
+"""基于已保存企业文档构建的可审计事件时间线。"""
 
 from __future__ import annotations
 

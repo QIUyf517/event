@@ -1,4 +1,4 @@
-"""Offline scorer for the phase-one event research benchmark."""
+"""第一阶段事件研究基准的离线评分器。"""
 
 from __future__ import annotations
 
@@ -163,7 +163,7 @@ def _no_unsupported_assertions(report: dict[str, Any]) -> bool:
 
 def score_event_report(case: EventBenchmarkCase | dict[str, Any], report: dict[str, Any],
                        source_catalog: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
-    """Score machine-checkable boundaries; human semantic review remains required."""
+    """对可由程序检查的边界进行评分；语义判断仍需人工复核。"""
 
     case = case if isinstance(case, EventBenchmarkCase) else EventBenchmarkCase.model_validate(case)
     catalog = source_catalog or load_event_source_catalog()

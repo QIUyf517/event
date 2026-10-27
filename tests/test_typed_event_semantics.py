@@ -1,4 +1,4 @@
-"""Regression checks for typed phase-five interpretation and public wording."""
+"""对第五阶段结构化解释及面向用户的表述进行回归检查。"""
 import json
 from datetime import datetime, timezone
 

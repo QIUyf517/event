@@ -1,4 +1,4 @@
-"""Bounded hypothesis, adversarial search, and deterministic evidence gate."""
+"""在限定范围内生成假设、检索反证，并用确定性规则把关证据。"""
 
 from __future__ import annotations
 
@@ -185,7 +185,7 @@ class EventHypothesisDebate:
                 for hypothesis in hypotheses]
 
     def _derived_missing(self, graph: EventGraphRun, support: list[str]) -> list[str]:
-        """State only gaps established by the saved graph, never model guesses of absence."""
+        """仅说明已保存图谱能够确认的缺口，不采用模型对证据缺失的猜测。"""
         claims = {item.claim_id: item for item in graph.claims}
         events = {item.event_id: item for item in graph.events}
         citations = {item.citation_id: item for item in graph.citations}
@@ -376,7 +376,7 @@ class EventHypothesisDebate:
         return result
 
     def _fallback_hypotheses(self, graph: EventGraphRun) -> list[DebateHypothesis]:
-        """Build reviewable candidates from validated graph state after model rejection."""
+        """模型输出被拒绝后，依据已校验的图谱状态构建可供复核的候选解释。"""
         result: list[DebateHypothesis] = []
         known = [event for event in graph.events
                  if event.date_status == "known" and event.occurred_at is not None]
@@ -611,8 +611,8 @@ class EventHypothesisDebate:
             financial = next((item for item in sources.values()
                               if item.source_type == "financial"), None)
             if financial is not None:
-                # A news recap of the company's financial figures does not
-                # independently confirm those same figures in this corpus.
+                # 在当前语料中，新闻对公司财务数据的转述，
+                # 不能视为对同一组数据的独立确认。
                 return financial.content_hash
         return (source.content_hash if source else document_id) or document_id
 

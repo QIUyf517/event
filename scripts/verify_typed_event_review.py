@@ -1,4 +1,4 @@
-"""Validate manually filled semantic-review records against exact saved outputs."""
+"""对照已保存的原始输出，校验人工填写的语义复核记录。"""
 from __future__ import annotations
 
 import argparse

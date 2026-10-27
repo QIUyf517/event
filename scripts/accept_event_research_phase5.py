@@ -1,4 +1,4 @@
-"""Run bounded real-model phase-five cases on a saved, read-only source copy."""
+"""在已保存来源的只读副本上，运行受限的第五阶段真实模型用例。"""
 
 from __future__ import annotations
 

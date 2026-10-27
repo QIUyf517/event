@@ -1,4 +1,4 @@
-"""Research UI backend boundaries and evaluation integrity."""
+"""验证研究界面的后端边界与评测完整性。"""
 import json
 from pathlib import Path
 
@@ -96,7 +96,7 @@ def test_workflow_api_auth_and_scope_before_execution(tmp_path, monkeypatch):
         assert client.get(f"{url}/{run_id}").json()["run"]["status"] == "partial"
         assert len(calls) == 1
         client.get(f"{url}/{run_id}")
-        assert len(calls) == 1  # Refresh is read-only.
+        assert len(calls) == 1  # 刷新页面仅执行只读操作。
         assert client.get(f"{url}/missing").status_code == 404
         monkeypatch.setenv("EVENT_DEMO_MODE", "true")
         assert client.post(url, json=REQUEST, headers=headers).status_code == 403

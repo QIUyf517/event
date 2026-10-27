@@ -1,4 +1,4 @@
-// Inspect saved timeline runs in a real headless Chrome without calling a model.
+// 使用真实的无头 Chrome 检查已保存的时间线运行结果，不调用模型。
 import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -22,7 +22,7 @@ async function until(fn, timeout = 30000) {
     try {
       const value = await fn();
       if (value) return value;
-    } catch { /* The browser or page may still be starting. */ }
+    } catch { /* 浏览器或页面可能仍在启动。 */ }
     await pause(250);
   }
   throw new Error("浏览器检查等待超时");

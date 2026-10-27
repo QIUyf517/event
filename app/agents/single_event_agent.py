@@ -1,7 +1,7 @@
-"""Single hypothesis-agent baseline on an identical, precomputed evidence graph.
+"""在相同的预先构建的证据图谱上运行单假设智能体基线。
 
-The comparison isolates adversarial review, not planning or graph extraction.
-It keeps the same scope, quote verification, model and publication gate.
+该对照用于考察反方核验的作用，不比较任务规划或图谱提取。
+研究范围、引用校验、模型及发布条件均保持一致。
 """
 from app.agents.hypothesis_debate import EventHypothesisDebate
 from app.data.repositories.event_debate import EventDebateStore

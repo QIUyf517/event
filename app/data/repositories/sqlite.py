@@ -1,4 +1,4 @@
-"""SQLite source store for company documents and historical market context."""
+"""使用 SQLite 存储企业文档与历史行情上下文。"""
 
 import json
 import re
@@ -96,7 +96,7 @@ class SQLiteRepository:
         self.upsert_documents([(doc, chunks)])
 
     def upsert_documents(self, items: Iterable[tuple[Document, Iterable[DocumentChunk]]]):
-        """Import a prevalidated batch atomically."""
+        """以原子操作导入已预先校验的一批资料。"""
         try:
             with self.conn:
                 for doc, chunks in items:
@@ -108,7 +108,7 @@ class SQLiteRepository:
             raise
 
     def store_event_document(self, doc: Document, chunks: Iterable[DocumentChunk]) -> DocumentStoreResult:
-        """Store one canonical source; exact URL/content/title duplicates are not independent evidence."""
+        """保存规范化来源；网址、内容或标题完全重复的资料不构成独立证据。"""
         candidates = []
         if doc.reprint_of:
             row = self.conn.execute("SELECT document_id FROM documents WHERE document_id=?", (doc.reprint_of,)).fetchone()
@@ -140,7 +140,7 @@ class SQLiteRepository:
     def search_event_chunks(self, query: str, subject_id: str, as_of_date: date,
                             window_start: date | None = None, source_types: list[str] | None = None,
                             limit: int = 10) -> list[ResearchRetrievalResult]:
-        """Deterministic hybrid retrieval: token/character matching plus strict metadata filters."""
+        """确定性混合检索：结合词项与字符匹配，并严格按元数据过滤。"""
         if window_start and window_start > as_of_date:
             raise ValueError("研究窗口开始日期不能晚于截止日期")
         clauses = ["d.subject_ids LIKE ?", "d.published_at <= ?", "d.duplicate_of IS NULL"]
